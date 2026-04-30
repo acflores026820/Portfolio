@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arlene Flores — From flight line to engineering</title>
+<meta name="description" content="Veteran transitioning from 20 years of Army aviation operations into software engineering. Apprenticing at Visa." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0b0c0d;
+    --bg-elev: #131517;
+    --bg-card: #181b1e;
+    --line: #22272b;
+    --line-bright: #2e353a;
+    --text: #e8e6e1;
+    --text-dim: #8a8680;
+    --text-faint: #4a4843;
+    --accent: #d97a3c;
+    --accent-warm: #f5a663;
+    --accent-cool: #6b9bb8;
+    --signal: #c8b572;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 22px 40px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    mix-blend-mode: difference;
+    pointer-events: none;
+  }
+  .topbar > * { pointer-events: auto; }
+  .logo {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    color: #fff;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .logo span { color: var(--accent); font-style: normal; font-family: var(--mono); font-size: 13px; vertical-align: middle; margin-left: 4px; }
+  .nav {
+    display: flex;
+    gap: 32px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    counter-reset: nav-counter;
+  }
+  .nav a {
+    color: #fff;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .nav a::before {
+    content: counter(nav-counter, decimal-leading-zero) '. ';
+    counter-increment: nav-counter;
+    color: var(--accent);
+    margin-right: 6px;
+  }
+  .nav a:hover { opacity: 0.6; }
+
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+  }
+  .hero-poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(11,12,13,0.55) 0%, rgba(11,12,13,0.15) 30%, rgba(11,12,13,0.5) 75%, rgba(11,12,13,0.95) 100%),
+      linear-gradient(90deg, rgba(11,12,13,0.6) 0%, transparent 50%);
+    z-index: 2;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    padding: 0 40px 80px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 40px;
+    align-items: end;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    opacity: 0.85;
+  }
+  .hero-eyebrow .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(217,122,60,0.8);
+    animation: pulse 2.4s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(217,122,60,0.7); }
+    70% { box-shadow: 0 0 0 14px rgba(217,122,60,0); }
+    100% { box-shadow: 0 0 0 0 rgba(217,122,60,0); }
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(56px, 9vw, 144px);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: #fff;
+    max-width: 1200px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent-warm);
+  }
+  .hero h1 .slash {
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-weight: 300;
+    font-size: 0.55em;
+    margin: 0 0.1em;
+    vertical-align: 0.18em;
+    font-style: normal;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: right;
+    align-self: end;
+    padding-bottom: 8px;
+  }
+  .hero-meta strong { color: #fff; font-weight: 500; }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 32px;
+    right: 40px;
+    z-index: 4;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-scroll::after {
+    content: '';
+    width: 1px;
+    height: 50px;
+    background: linear-gradient(to bottom, transparent, var(--text));
+    animation: scroll-pulse 2s infinite;
+  }
+  @keyframes scroll-pulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(0.8); }
+    50% { opacity: 1; transform: scaleY(1.2); }
+  }
+
+  section { position: relative; padding: 140px 40px; }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-num::before {
+    content: '';
+    width: 28px; height: 1px;
+    background: var(--accent);
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(40px, 6vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 80px;
+    max-width: 1000px;
+  }
+  .section-title em { font-style: italic; color: var(--accent-warm); font-weight: 300; }
+
+  .about { border-top: 1px solid var(--line); }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 90px;
+    align-items: start;
+  }
+  .about-portrait {
+    position: relative;
+    aspect-ratio: 4/5;
+    overflow: hidden;
+  }
+  .about-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(0.15) contrast(1.05);
+    transition: filter 0.6s ease;
+  }
+  .about-portrait:hover img {
+    filter: grayscale(0) contrast(1);
+  }
+  .about-portrait::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px; bottom: -1px;
+    border: 1px solid var(--accent);
+    z-index: 2;
+    pointer-events: none;
+    transform: translate(14px, 14px);
+    transition: transform 0.4s ease;
+  }
+  .about-portrait:hover::before { transform: translate(0, 0); }
+  .portrait-tag {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 3;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(11,12,13,0.85);
+    padding: 6px 10px;
+    backdrop-filter: blur(6px);
+  }
+
+  .memory-reel {
+    position: relative;
+    margin-top: 28px;
+    aspect-ratio: 9/16;
+    max-height: 480px;
+    overflow: hidden;
+    border: 1px solid var(--line-bright);
+    background: #000;
+  }
+  .memory-reel video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .memory-reel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 60%, rgba(11,12,13,0.85));
+    pointer-events: none;
+  }
+  .reel-label {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .reel-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .reel-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    color: #fff;
+    font-weight: 400;
+  }
+
+  .about-prose {
+    font-family: var(--sans);
+    font-size: 18px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+  .about-prose p + p { margin-top: 24px; }
+  .about-prose strong {
+    color: var(--accent-warm);
+    font-weight: 500;
+  }
+  .pull-quote {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 28px;
+    line-height: 1.3;
+    color: #fff;
+    border-left: 2px solid var(--accent);
+    padding: 8px 0 8px 28px;
+    margin: 36px 0;
+    display: block;
+    letter-spacing: -0.01em;
+  }
+
+  .about-meta {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+  .meta-cell {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .meta-cell:nth-child(odd) { padding-right: 24px; }
+  .meta-cell:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--line); }
+  .meta-cell .lbl {
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .meta-cell .val { color: var(--text); }
+  .meta-cell .val .hi { color: var(--accent-warm); }
+
+  .experience { background: linear-gradient(180deg, var(--bg) 0%, #0d0e10 100%); border-top: 1px solid var(--line); }
+  .timeline {
+    position: relative;
+    max-width: 1200px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--accent) 0%, var(--line-bright) 25%, var(--line-bright) 75%, transparent 100%);
+  }
+  .tl-item {
+    position: relative;
+    padding-left: 70px;
+    padding-bottom: 64px;
+  }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--line-bright);
+    transition: all 0.3s;
+    z-index: 1;
+  }
+  .tl-item.current::before {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 0 6px rgba(217,122,60,0.18);
+  }
+  .tl-item:hover::before {
+    border-color: var(--accent);
+    transform: scale(1.25);
+  }
+  .tl-date {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .tl-date .now {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 10px;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+  }
+  .tl-role {
+    font-family: var(--serif);
+    font-size: clamp(26px, 3vw, 36px);
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+  .tl-org {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .tl-desc {
+    font-family: var(--sans);
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.65;
+    max-width: 760px;
+  }
+  .tl-tags {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tl-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border: 1px solid var(--line-bright);
+    color: var(--text-dim);
+    border-radius: 1px;
+  }
+
+  .photo-strip {
+    position: relative;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .strip-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 0.9fr;
+    height: 60vh;
+    min-height: 400px;
+  }
+  .strip-cell {
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid var(--line);
+  }
+  .strip-cell:last-child { border-right: none; }
+  .strip-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    filter: contrast(1.05) saturate(0.95);
+  }
+  .strip-cell:hover img { transform: scale(1.04); }
+  .strip-label {
+    position: absolute;
+    bottom: 20px; left: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(11,12,13,0.7);
+    backdrop-filter: blur(6px);
+    padding: 8px 12px;
+    z-index: 2;
+  }
+  .strip-label .num { color: var(--accent); margin-right: 8px; }
+
+  .skills { border-top: 1px solid var(--line); }
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .skill-card {
+    background: var(--bg);
+    padding: 36px 32px;
+    transition: background 0.3s;
+  }
+  .skill-card:hover { background: var(--bg-elev); }
+  .skill-card .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+  }
+  .skill-card h3 {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 400;
+    color: #fff;
+    margin-bottom: 22px;
+    letter-spacing: -0.01em;
+  }
+  .skill-card h3 em { color: var(--accent-warm); font-style: italic; }
+  .skill-list {
+    list-style: none;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .skill-list li {
+    padding: 10px 0;
+    color: var(--text);
+    border-bottom: 1px dashed var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .skill-list li:last-child { border-bottom: none; }
+  .skill-list li::before {
+    content: '→';
+    color: var(--accent);
+    margin-right: 10px;
+    font-family: var(--sans);
+  }
+  .skill-list li .name { flex: 1; }
+  .skill-bar {
+    width: 70px;
+    height: 3px;
+    background: var(--line-bright);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .skill-bar div {
+    height: 100%;
+    background: var(--accent);
+  }
+
+  .writing { border-top: 1px solid var(--line); background: linear-gradient(180deg, #0d0e10 0%, var(--bg) 100%); }
+  .post-list { display: flex; flex-direction: column; max-width: 1200px; }
+  .post {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 40px;
+    align-items: baseline;
+    padding: 32px 0;
+    border-top: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+  }
+  .post:last-of-type { border-bottom: 1px solid var(--line); }
+  .post:hover { padding-left: 16px; }
+  .post:hover .post-arrow { color: var(--accent); transform: translate(8px, -8px); }
+  .post:hover .post-title { color: var(--accent-warm); }
+  .post-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.15em;
+  }
+  .post-content { max-width: 800px; }
+  .post-title {
+    font-family: var(--serif);
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 10px;
+    transition: color 0.25s;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+  .post-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .post-meta .dot-sep { margin: 0 10px; color: var(--text-faint); }
+  .post-meta .tag { color: var(--accent); }
+  .post-excerpt {
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    max-width: 680px;
+  }
+  .post-arrow {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--text-faint);
+    transition: all 0.3s;
+  }
+
+  .blog-soon {
+    margin-top: 36px;
+    padding: 22px 28px;
+    border: 1px dashed var(--line-bright);
+    background: var(--bg-elev);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .blog-soon .pulse-warm {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-fade 2.4s infinite;
+  }
+  @keyframes pulse-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  .contact {
+    border-top: 1px solid var(--line);
+    background-image:
+      radial-gradient(ellipse at 80% 20%, rgba(217,122,60,0.08), transparent 60%),
+      radial-gradient(ellipse at 0% 100%, rgba(107,155,184,0.05), transparent 50%);
+  }
+  .contact-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 90px;
+    align-items: center;
+  }
+  .contact-headline {
+    font-family: var(--serif);
+    font-size: clamp(44px, 6vw, 84px);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: #fff;
+    font-weight: 300;
+  }
+  .contact-headline em { font-style: italic; color: var(--accent-warm); font-weight: 300; }
+  .contact-sub {
+    font-family: var(--sans);
+    font-size: 17px;
+    color: var(--text-dim);
+    margin-top: 28px;
+    max-width: 460px;
+    line-height: 1.6;
+  }
+
+  .contact-links { display: flex; flex-direction: column; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .contact-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 28px;
+    background: var(--bg);
+    text-decoration: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    transition: all 0.25s;
+  }
+  .contact-link:hover {
+    background: var(--bg-elev);
+    padding-left: 36px;
+    color: var(--accent-warm);
+  }
+  .contact-link .lbl {
+    color: var(--text-faint);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-right: 28px;
+    min-width: 90px;
+  }
+  .contact-link .val { flex: 1; }
+  .contact-link .arrow {
+    color: var(--accent);
+    transition: transform 0.25s;
+    font-size: 18px;
+  }
+  .contact-link:hover .arrow { transform: translate(5px, -5px); }
+
+  footer {
+    padding: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-top: 1px solid var(--line);
+  }
+  footer .signal {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  footer .signal::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse-fade 2.4s infinite;
+  }
+
+  @media (max-width: 900px) {
+    .topbar { padding: 18px 24px; }
+    .nav { display: none; }
+    .hero-content { grid-template-columns: 1fr; padding: 0 24px 60px; }
+    .hero-meta { text-align: left; }
+    .hero-scroll { display: none; }
+    section { padding: 90px 24px; }
+    .about-grid, .contact-wrap { grid-template-columns: 1fr; gap: 50px; }
+    .strip-grid { grid-template-columns: 1fr; height: auto; }
+    .strip-cell { aspect-ratio: 16/10; border-right: none; border-bottom: 1px solid var(--line); }
+    .strip-cell:last-child { border-bottom: none; }
+    .post { grid-template-columns: 1fr; gap: 10px; }
+    .post-arrow { display: none; }
+    .meta-cell:nth-child(even) { border-left: none; padding-left: 0; }
+    .meta-cell:nth-child(odd) { padding-right: 0; }
+    footer { padding: 30px 24px; }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="#top" class="logo">Arlene Flores<span>// v1.0</span></a>
+  <nav class="nav">
+    <a href="#about">About</a>
+    <a href="#experience">Experience</a>
+    <a href="#skills">Skills</a>
+    <a href="#writing">Writing</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<section class="hero" id="top">
+  <img class="hero-poster" src="blackhawk.jpeg" alt="UH-60 Black Hawk on the flight line at sunset" />
+
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <span class="pulse"></span>
+        <span>Now boarding · Apprenticeship at Visa · June 2026</span>
+      </div>
+      <h1>
+        From the<br />
+        flight line<br />
+        <em>to the</em> codebase<span class="slash">.</span>
+      </h1>
+    </div>
+    <div class="hero-meta">
+      <div><strong>ARLENE FLORES</strong></div>
+      <div>U.S. Army Veteran</div>
+      <div>Software Engineer</div>
+      <div>Austin, TX</div>
+    </div>
+  </div>
+
+  <div class="hero-scroll">Scroll · Down</div>
+</section>
+
+<section class="about" id="about">
+  <div class="reveal">
+    <div class="section-num">01 · About</div>
+    <h2 class="section-title">Twenty years in <em>Army aviation operations</em>. Now I'm shipping code.</h2>
+  </div>
+
+  <div class="about-grid">
+    <div class="reveal">
+      <div class="about-portrait">
+        <img src="portrait.jpeg" alt="Arlene Flores" />
+        <div class="portrait-tag">// Operator → Engineer</div>
+      </div>
+
+      <div class="memory-reel">
+        <video autoplay muted loop playsinline poster="blackhawk.jpeg">
+          <source src="hero-web.mp4" type="video/mp4" />
+        </video>
+        <div class="reel-label">
+          <span class="reel-num">REEL · 01</span>
+          <span class="reel-title">Twenty years, in motion</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="about-prose">
+        <p>
+          For two decades — May 2006 through my retirement in May 2026 — I've led technical operations and small teams in U.S. Army aviation. Keeping aircraft mission-ready, running standardized procedures, and making decisions under conditions where the cost of getting it wrong is real.
+        </p>
+
+        <p class="pull-quote">
+          "Software engineering isn't a pivot. It's the same job — diagnose the problem, ship the fix, document the why — with a different toolkit."
+        </p>
+
+        <p>
+          I'm finishing my undergraduate business degree at <strong>American Public University System</strong> while preparing to start a 15-week software engineering apprenticeship through <strong>Apprenti</strong>, with on-the-job training at <strong>Visa</strong> in Austin starting June 1st.
+        </p>
+
+        <p>
+          What I bring to a code review or a standup is the same thing I brought to a flight line: calm under pressure, a bias toward documented process, and a habit of asking <em>"what does this actually need to do, and for whom?"</em> before writing the first line.
+        </p>
+      </div>
+
+      <div class="about-meta">
+        <div class="meta-cell">
+          <span class="lbl">Currently</span>
+          <span class="val">Apprentice SWE @ <span class="hi">Visa</span></span>
+        </div>
+        <div class="meta-cell">
+          <span class="lbl">Based in</span>
+          <span class="val">Austin, Texas</span>
+        </div>
+        <div class="meta-cell">
+          <span class="lbl">Degree</span>
+          <span class="val">B.S. Business · APUS</span>
+        </div>
+        <div class="meta-cell">
+          <span class="lbl">Status</span>
+          <span class="val"><span class="hi">●</span> Open to mentorship</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="photo-strip">
+  <div class="strip-grid">
+    <div class="strip-cell">
+      <img src="blackhawk.jpeg" alt="UH-60 Black Hawk at sunset" />
+      <div class="strip-label"><span class="num">A.</span> Black Hawk · End of duty day</div>
+    </div>
+    <div class="strip-cell">
+      <img src="chinook.jpeg" alt="CH-47 Chinook at twilight" />
+      <div class="strip-label"><span class="num">B.</span> Chinook · Pre-flight</div>
+    </div>
+    <div class="strip-cell">
+      <img src="apache.jpeg" alt="Apache helicopter maintenance crew" />
+      <div class="strip-label"><span class="num">C.</span> Apache · Crew at work</div>
+    </div>
+  </div>
+</div>
+
+<section class="experience" id="experience">
+  <div class="reveal">
+    <div class="section-num">02 · Experience</div>
+    <h2 class="section-title">A <em>twenty-year</em> operating record.</h2>
+  </div>
+
+  <div class="timeline reveal">
+
+    <div class="tl-item current">
+      <div class="tl-date">June 2026 — Sept 2026 <span class="now">Incoming</span></div>
+      <h3 class="tl-role">Software Engineering Apprentice</h3>
+      <div class="tl-org">Visa · Military Talent Program (via Apprenti) · Austin, TX</div>
+      <p class="tl-desc">
+        15-week intensive apprenticeship in Senior Support Software Engineering. On-the-job training in production payment systems, with a focus on reliability, observability, and the engineering culture that supports global financial infrastructure.
+      </p>
+      <div class="tl-tags">
+        <span class="tl-tag">Apprenticeship</span>
+        <span class="tl-tag">Payments</span>
+        <span class="tl-tag">Production Support</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-date">2024 — 2026</div>
+      <h3 class="tl-role">B.S. Business Administration</h3>
+      <div class="tl-org">American Public University System · Capstone in progress</div>
+      <p class="tl-desc">
+        Completing capstone (BUSN499) alongside coursework in business technology, microeconomics, and critical thinking. Built strong foundations in decision frameworks, business writing, and applied analytics — the connective tissue between engineering work and the business it serves.
+      </p>
+      <div class="tl-tags">
+        <span class="tl-tag">Capstone</span>
+        <span class="tl-tag">Business Tech</span>
+        <span class="tl-tag">Critical Thinking</span>
+      </div>
+    </div>
+
+    <div class="tl-item current">
+      <div class="tl-date">May 2006 — May 2026 <span class="now">Active</span></div>
+      <h3 class="tl-role">Technical Operations &amp; Systems Leadership</h3>
+      <div class="tl-org">United States Army · Aviation</div>
+      <p class="tl-desc">
+        Twenty years leading small technical teams across multiple installations. Responsible for mission-readiness of aircraft systems, training new personnel to standard, and building the documentation and process discipline that lets a team operate consistently when conditions don't cooperate. Retiring May 2026.
+      </p>
+      <div class="tl-tags">
+        <span class="tl-tag">Team Leadership</span>
+        <span class="tl-tag">Systems Ops</span>
+        <span class="tl-tag">SOP Development</span>
+        <span class="tl-tag">Training</span>
+        <span class="tl-tag">Quality Control</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="skills" id="skills">
+  <div class="reveal">
+    <div class="section-num">03 · Skills</div>
+    <h2 class="section-title">The <em>toolkit</em> · what I'm fluent in &amp; what I'm building.</h2>
+  </div>
+
+  <div class="skills-grid reveal">
+    <div class="skill-card">
+      <div class="num">01</div>
+      <h3>Engineering <em>foundations</em></h3>
+      <ul class="skill-list">
+        <li><span class="name">Python</span><div class="skill-bar"><div style="width:70%"></div></div></li>
+        <li><span class="name">JavaScript / HTML / CSS</span><div class="skill-bar"><div style="width:65%"></div></div></li>
+        <li><span class="name">SQL</span><div class="skill-bar"><div style="width:60%"></div></div></li>
+        <li><span class="name">Git &amp; version control</span><div class="skill-bar"><div style="width:75%"></div></div></li>
+        <li><span class="name">Linux / shell basics</span><div class="skill-bar"><div style="width:65%"></div></div></li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="num">02</div>
+      <h3>Process <em>&amp; methodology</em></h3>
+      <ul class="skill-list">
+        <li><span class="name">SDLC fundamentals</span><div class="skill-bar"><div style="width:80%"></div></div></li>
+        <li><span class="name">Agile / Scrum awareness</span><div class="skill-bar"><div style="width:75%"></div></div></li>
+        <li><span class="name">Validation &amp; verification</span><div class="skill-bar"><div style="width:90%"></div></div></li>
+        <li><span class="name">Technical documentation</span><div class="skill-bar"><div style="width:95%"></div></div></li>
+        <li><span class="name">Root-cause analysis</span><div class="skill-bar"><div style="width:90%"></div></div></li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="num">03</div>
+      <h3>Operating <em>strengths</em></h3>
+      <ul class="skill-list">
+        <li><span class="name">Team leadership</span><div class="skill-bar"><div style="width:95%"></div></div></li>
+        <li><span class="name">Calm under pressure</span><div class="skill-bar"><div style="width:100%"></div></div></li>
+        <li><span class="name">Standardized procedures</span><div class="skill-bar"><div style="width:95%"></div></div></li>
+        <li><span class="name">Cross-functional comms</span><div class="skill-bar"><div style="width:85%"></div></div></li>
+        <li><span class="name">Mentoring &amp; training</span><div class="skill-bar"><div style="width:90%"></div></div></li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="num">04</div>
+      <h3>Currently <em>learning</em></h3>
+      <ul class="skill-list">
+        <li><span class="name">Production support patterns</span><div class="skill-bar"><div style="width:35%"></div></div></li>
+        <li><span class="name">Observability &amp; logging</span><div class="skill-bar"><div style="width:30%"></div></div></li>
+        <li><span class="name">Java fundamentals</span><div class="skill-bar"><div style="width:25%"></div></div></li>
+        <li><span class="name">Cloud basics (AWS)</span><div class="skill-bar"><div style="width:30%"></div></div></li>
+        <li><span class="name">Payment system architecture</span><div class="skill-bar"><div style="width:20%"></div></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="writing" id="writing">
+  <div class="reveal">
+    <div class="section-num">04 · Writing</div>
+    <h2 class="section-title">Notes from the <em>transition</em>.</h2>
+  </div>
+
+  <div class="post-list reveal">
+    <a class="post" href="#">
+      <span class="post-num">№ 001</span>
+      <div class="post-content">
+        <div class="post-meta"><span class="tag">TRANSITION</span><span class="dot-sep">·</span>5 min read<span class="dot-sep">·</span>Coming soon</div>
+        <h3 class="post-title">What 20 years on a flight line taught me about code review</h3>
+        <p class="post-excerpt">A pre-flight checklist and a pull request have more in common than people think. Both are about catching the thing the author couldn't see — without making it personal.</p>
+      </div>
+      <span class="post-arrow">↗</span>
+    </a>
+
+    <a class="post" href="#">
+      <span class="post-num">№ 002</span>
+      <div class="post-content">
+        <div class="post-meta"><span class="tag">CAREER</span><span class="dot-sep">·</span>7 min read<span class="dot-sep">·</span>Coming soon</div>
+        <h3 class="post-title">Apprenticeship over bootcamp: why I chose Apprenti</h3>
+        <p class="post-excerpt">For someone with operating experience but no CS degree, an apprenticeship trades the certificate for what actually matters — a real codebase, a real team, and a real paycheck.</p>
+      </div>
+      <span class="post-arrow">↗</span>
+    </a>
+
+    <a class="post" href="#">
+      <span class="post-num">№ 003</span>
+      <div class="post-content">
+        <div class="post-meta"><span class="tag">REFLECTION</span><span class="dot-sep">·</span>4 min read<span class="dot-sep">·</span>Coming soon</div>
+        <h3 class="post-title">Translating military experience without translating it away</h3>
+        <p class="post-excerpt">There's a temptation to scrub every military reference from your resume. The better move is to translate the substance — and trust the reader to meet you halfway.</p>
+      </div>
+      <span class="post-arrow">↗</span>
+    </a>
+  </div>
+
+  <div class="blog-soon reveal">
+    <span class="pulse-warm"></span>
+    First post drops shortly after the apprenticeship begins · June 2026
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="contact-wrap">
+    <div class="reveal">
+      <div class="section-num">05 · Contact</div>
+      <h2 class="contact-headline">Let's <em>talk</em>.</h2>
+      <p class="contact-sub">
+        Open to mentorship, peer connections in the apprenticeship cohort, and conversations with engineers who've made similar transitions. The inbox is the right door.
+      </p>
+    </div>
+
+    <div class="contact-links reveal">
+      <a class="contact-link" href="mailto:hello@example.com">
+        <span class="lbl">E-mail</span>
+        <span class="val">hello@example.com</span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="contact-link" href="https://linkedin.com" target="_blank" rel="noopener">
+        <span class="lbl">LinkedIn</span>
+        <span class="val">/in/arleneflores</span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="contact-link" href="https://github.com" target="_blank" rel="noopener">
+        <span class="lbl">GitHub</span>
+        <span class="val">@acflores026820</span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="contact-link" href="#">
+        <span class="lbl">Resume</span>
+        <span class="val">Download · PDF</span>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="signal">Signal · Online</div>
+  <div>© 2026 · Arlene Flores · Built solo</div>
+  <div>Austin, TX</div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
