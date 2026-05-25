@@ -679,6 +679,103 @@
     50% { opacity: 0.25; }
   }
 
+  /* ===== DOCUMENTS ===== */
+  .documents { border-top: 1px solid var(--line); }
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .doc-card {
+    background: var(--bg);
+    padding: 32px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.3s;
+    position: relative;
+    min-height: 220px;
+  }
+  .doc-card:hover { background: var(--bg-elev); }
+  .doc-card.ready:hover .doc-action { color: var(--accent-warm); }
+  .doc-card.ready:hover .doc-action .arrow { transform: translate(5px,-5px); }
+  .doc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .doc-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+  }
+  .doc-status {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 1px;
+    white-space: nowrap;
+  }
+  .doc-status.ready {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+  .doc-status.pending {
+    border: 1px solid var(--line-bright);
+    color: var(--text-dim);
+  }
+  .doc-title {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .doc-desc {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .doc-desc .doc-contact {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .doc-desc .doc-contact .ct-label {
+    color: var(--accent);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+  .doc-action {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.25s;
+  }
+  .doc-action .arrow { transition: transform 0.25s; font-size: 15px; }
+  .doc-action.muted { color: var(--text-faint); }
+
   .contact {
     border-top: 1px solid var(--line);
     background-image:
@@ -808,6 +905,7 @@
     <a href="#about">About</a>
     <a href="#experience">Experience</a>
     <a href="#skills">Skills</a>
+    <a href="#documents">Documents</a>
     <a href="#writing">Writing</a>
     <a href="#contact">Contact</a>
   </nav>
@@ -1033,9 +1131,93 @@
   </div>
 </section>
 
+<section class="documents" id="documents">
+  <div class="reveal">
+    <div class="section-num">04 · Documents</div>
+    <h2 class="section-title">The <em>paper trail</em> · credentials &amp; career materials.</h2>
+  </div>
+
+  <div class="docs-grid reveal">
+
+    <a class="doc-card ready" href="Executive_Summary.docx">
+      <div class="doc-top">
+        <span class="doc-num">DOC · 01</span>
+        <span class="doc-status ready">Available</span>
+      </div>
+      <div class="doc-title">Executive Summary</div>
+      <p class="doc-desc">A reflective overview of my B.S. in Business Administration with a concentration in Business Analysis — why I chose the program, what I learned, and how it supports my move into software engineering.</p>
+      <span class="doc-action">Download · DOCX <span class="arrow">↗</span></span>
+    </a>
+
+    <div class="doc-card">
+      <div class="doc-top">
+        <span class="doc-num">DOC · 02</span>
+        <span class="doc-status pending">Coming soon</span>
+      </div>
+      <div class="doc-title">Resume</div>
+      <p class="doc-desc">A current resume translating 20 years of Army aviation leadership and operations into civilian and technical terms. Available on request in the meantime.</p>
+      <span class="doc-action muted">Posting shortly</span>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-top">
+        <span class="doc-num">DOC · 03</span>
+        <span class="doc-status pending">Coming soon</span>
+      </div>
+      <div class="doc-title">Cover Letter</div>
+      <p class="doc-desc">A tailored cover letter connecting my military background and business education to roles in software engineering. Available on request in the meantime.</p>
+      <span class="doc-action muted">Posting shortly</span>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-top">
+        <span class="doc-num">DOC · 04</span>
+        <span class="doc-status pending">On request</span>
+      </div>
+      <div class="doc-title">Official Transcripts</div>
+      <p class="doc-desc">Academic transcripts are verified and released directly by the university registrar.
+        <span class="doc-contact">
+          <span class="ct-label">Registrar</span><br />
+          Chassidy Kinser<br />
+          American Public University System<br />
+          111 W. Congress Street<br />
+          Charles Town, WV 25414
+        </span>
+      </p>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-top">
+        <span class="doc-num">DOC · 05</span>
+        <span class="doc-status pending">On request</span>
+      </div>
+      <div class="doc-title">Letters of Recommendation</div>
+      <p class="doc-desc">References who can speak to my leadership, work ethic, and readiness for a technical career. Available on request.
+        <span class="doc-contact">
+          <span class="ct-label">References</span><br />
+          Nathaniel Landry<br />
+          William Million<br />
+          Darmir Hodzic
+        </span>
+      </p>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-top">
+        <span class="doc-num">DOC · 06</span>
+        <span class="doc-status pending">Coming soon</span>
+      </div>
+      <div class="doc-title">Program Learning Summaries</div>
+      <p class="doc-desc">Course-by-course summaries highlighting the key concepts, skills, and program objectives achieved across my degree.</p>
+      <span class="doc-action muted">Posting shortly</span>
+    </div>
+
+  </div>
+</section>
+
 <section class="writing" id="writing">
   <div class="reveal">
-    <div class="section-num">04 · Writing</div>
+    <div class="section-num">05 · Writing</div>
     <h2 class="section-title">Notes from the <em>transition</em>.</h2>
   </div>
 
@@ -1080,7 +1262,7 @@
 <section class="contact" id="contact">
   <div class="contact-wrap">
     <div class="reveal">
-      <div class="section-num">05 · Contact</div>
+      <div class="section-num">06 · Contact</div>
       <h2 class="contact-headline">Let's <em>talk</em>.</h2>
       <p class="contact-sub">
         Open to mentorship, peer connections in the apprenticeship cohort, and conversations with engineers who've made similar transitions. The inbox is the right door.
