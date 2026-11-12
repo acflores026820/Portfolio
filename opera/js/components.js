@@ -513,8 +513,9 @@
     el = document.querySelector(`#proto-panel input[name="${el.name}"][value="${el.value}"]`); if (el) el.focus();
   };
   OperA.actions['reset-proto'] = () => {
-    if (!window.confirm('Reset all prototype data? Drafts, requests you created, and alert actions will be cleared.')) return;
-    store.reset(); renderProto(); OperA.toast('Prototype data reset.', 'info'); OperA.go('#/home');
+    OperA.confirm({ title: 'Reset all prototype data?', label: 'Reset everything',
+      body: html`<p>Drafts, requests you created and alert actions will be cleared, and both layouts go back to Guided. This can’t be undone.</p>` },
+    () => { store.reset(); renderProto(); OperA.toast('Prototype data reset.', 'info'); OperA.go('#/home'); });
   };
   OperA.actions['retry-load'] = () => { store.state.proto.dataSource = 'normal'; store.save(); renderProto(); OperA.refresh(); OperA.toast('Loaded.', 'info'); };
 

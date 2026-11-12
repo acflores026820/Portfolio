@@ -624,7 +624,9 @@
         </form>`);
       dlg.showModal();
       const first = dlg.querySelector('.modal-body input:not([type=hidden]), .modal-body textarea, .modal-body select');
-      (first || dlg.querySelector('[type=submit]') || dlg.querySelector('button')).focus();
+      // A destructive confirmation starts on Cancel, so Enter can't delete anything by accident.
+      const cancel = tone === 'danger' && !first ? dlg.querySelector('.modal-foot .btn') : null;
+      (first || cancel || dlg.querySelector('[type=submit]') || dlg.querySelector('button')).focus();
     },
     close() {
       const dlg = document.getElementById('modal');
@@ -650,4 +652,17 @@
   };
   OperA.actions['modal-close'] = () => OperA.modal.close();
   OperA.forms.noop = () => OperA.modal.close();
+
+  /* In-page confirmation for destructive actions. Browser pop-ups (window.confirm) are
+     blocked in embedded viewers and can't be styled or labelled, so OperA doesn't use them. */
+  let pendingConfirm = null;
+  OperA.confirm = function ({ title, body, label }, onConfirm) {
+    pendingConfirm = onConfirm;
+    OperA.modal.open({ title, body, form: 'confirm', submitLabel: label, tone: 'danger' });
+  };
+  OperA.forms.confirm = () => {
+    const fn = pendingConfirm; pendingConfirm = null;
+    OperA.modal.close();
+    if (fn) fn();
+  };
 })();

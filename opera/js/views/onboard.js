@@ -431,8 +431,9 @@
   OperA.actions['ob-goto'] = (el) => { const d = draft(); d.step = Number(el.dataset.step); touch(); OperA.render(); };
   OperA.actions['ob-later'] = () => { touch(); OperA.toast('Draft saved. You’ll find it under “Your next actions” on your home page.'); OperA.go('#/home'); };
   OperA.actions['ob-reset'] = () => {
-    if (!window.confirm('Start over? Your draft will be deleted.')) return;
-    store.state.draft = null; store.save(); OperA.go('#/onboard'); OperA.render();
+    OperA.confirm({ title: 'Start over?', label: 'Delete draft and start over',
+      body: html`<p>Your onboarding draft will be deleted. Requests you’ve already submitted are not affected.</p>` },
+    () => { store.state.draft = null; store.save(); OperA.go('#/onboard'); });
   };
 
   /* Run checks with visible, announced progress. */
