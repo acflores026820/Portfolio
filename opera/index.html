@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OperA · Self-service observability</title>
+<meta name="description" content="OperA — an application-centered, self-service observability platform prototype. Less chasing. More solving." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f4fd1'/%3E%3Cpath d='M7 17h4l3-7 4 13 3-6h4' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="css/opera.css" />
+<link rel="stylesheet" href="css/console.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<section class="prototype-ribbon" aria-label="Prototype notice">
+  <strong>Prototype</strong> · All applications, people, alerts and data are fictional. No real systems are connected.
+</section>
+
+<header class="topbar">
+  <button class="icon-btn nav-toggle" type="button" data-action="toggle-nav" aria-expanded="false" aria-controls="sidenav">
+    <span class="sr-only">Open navigation</span>
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <a class="brand" href="#/home">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="8"/><path d="M7 17h4l3-7 4 13 3-6h4"/></svg>
+    <span class="brand-name">OperA</span>
+    <span class="brand-tag">Less chasing. More solving.</span>
+  </a>
+
+  <form class="global-search" role="search" data-form="global-search">
+    <label for="global-search-input" class="sr-only">Search applications, CAMR IDs, services, alerts and procedures</label>
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input id="global-search-input" name="q" type="search" autocomplete="off"
+           placeholder="Search app, CAMR ID, service, alert…" />
+  </form>
+
+  <div class="role-switch" role="group" aria-labelledby="role-switch-label">
+    <span id="role-switch-label" class="role-switch-label">View as</span>
+    <button type="button" data-action="set-role" data-role="app" aria-pressed="true">Application team</button>
+    <button type="button" data-action="set-role" data-role="ops" aria-pressed="false">DevOps / Ops</button>
+  </div>
+
+  <div class="role-switch design-switch" role="group" aria-labelledby="design-switch-label">
+    <span id="design-switch-label" class="role-switch-label">Layout</span>
+    <button type="button" data-action="set-design" data-design="guided" aria-pressed="true">Guided</button>
+    <button type="button" data-action="set-design" data-design="console" aria-pressed="false">Console</button>
+  </div>
+
+  <button class="assistant-btn" type="button" data-action="toggle-assistant" aria-expanded="false" aria-controls="assistant">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+    <span>Ask OperA</span>
+  </button>
+  <div class="user-chip" id="user-chip" role="group" aria-label="Signed in user"></div>
+</header>
+
+<div class="layout">
+  <nav class="sidenav" id="sidenav" aria-label="Primary"></nav>
+  <main id="main" tabindex="-1">
+    <noscript><div class="callout callout-danger"><p>OperA needs JavaScript enabled to run this prototype.</p></div></noscript>
+  </main>
+  <aside class="assistant" id="assistant" aria-label="OperA Assistant" hidden></aside>
+</div>
+
+<dialog id="modal" aria-labelledby="modal-title"></dialog>
+
+<div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="false"></div>
+<div class="sr-only" id="sr-announcer" aria-live="assertive" aria-atomic="true"></div>
+
+<button class="proto-btn" type="button" data-action="toggle-proto" aria-expanded="false" aria-controls="proto-panel">
+  Prototype controls
+</button>
+<section class="proto-panel" id="proto-panel" aria-label="Prototype controls" hidden></section>
+
+<script src="js/data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/components.js"></script>
+<script src="js/views/home.js"></script>
+<script src="js/views/apps.js"></script>
+<script src="js/views/onboard.js"></script>
+<script src="js/views/requests.js"></script>
+<script src="js/views/alerts.js"></script>
+<script src="js/views/health.js"></script>
+<script src="js/views/runbooks.js"></script>
+<script src="js/views/search.js"></script>
+<script src="js/views/about.js"></script>
+<script src="js/views/console.js"></script>
+<script src="js/views/choose.js"></script>
+<script src="js/assistant.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
