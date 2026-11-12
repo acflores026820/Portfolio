@@ -544,6 +544,8 @@
     logs: { term: 'Logs', text: 'Timestamped records of what happened, such as an error with its message. Used to find out why something happened.' },
     traces: { term: 'Traces', text: 'The path one request takes through your services, step by step. Used to find which step is slow or failing.' },
     collector: { term: 'Collector', text: 'The platform service that receives your telemetry and sends it to storage. You send data to it; the platform team runs it.' },
+    tier: { term: 'Tier', text: 'How critical an application is, from the registry. Tier 1 is customer-facing and escalates fastest: the app on-call is paged after 15 minutes. Tier 2 pages after 30 minutes. Tier 3 is supported in business hours. The timers on this card come from the tier.' },
+    changeRecord: { term: 'Change record', text: 'The ticket that records a change to production, such as CHG-204118. During an incident, create an emergency change in the change-management tool (it takes about a minute and can be completed afterwards), or ask the approver to attach one. OperA needs the number so the change can be audited later.' },
     attributes: { term: 'Resource attributes', text: 'Labels attached to every piece of telemetry (application, service, component, environment). They are how OperA knows the data is yours.' },
   };
 

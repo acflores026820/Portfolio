@@ -181,7 +181,6 @@
       </div>` : ''}
     </li>`;
   }
-  OperA.checkItem = checkItem;
   function resultsBlock(checks, where) {
     const s = validation.summary(checks);
     return html`<div class="val-summary" role="status">
@@ -203,40 +202,46 @@
   }
   OperA.resultsBlock = resultsBlock;
 
-  function stepConnect(d, errors) {
+  /** Tabs with the generated configuration and an explanation of each line. Used by both layouts. */
+  function configBlock(d) {
     const { app } = ctx(d);
     const cfg = configs(d);
     const methods = [ ['kubernetes', 'Kubernetes', cfg.k8s, 'YAML'], ['env', 'Environment variables', cfg.env, 'Shell'], ['vm', 'Virtual machine agent', cfg.vm, 'Shell'] ];
-    const recommended = app.platform === 'kubernetes' ? 'kubernetes' : 'vm';
-    if (!d.methodChosen && d.method !== recommended) { d.method = recommended; touch(); }
+    const rec = app.platform === 'kubernetes' ? 'kubernetes' : 'vm';
+    if (!d.methodChosen && d.method !== rec) { d.method = rec; touch(); }
+    return html`
+      <p class="small">Registry says ${app.name} runs on ${app.platform === 'kubernetes' ? 'Kubernetes' : 'virtual machines'}, so that tab is selected.</p>
+      <div class="tabs" role="tablist" aria-label="Deployment type">${methods.map(([k, label]) => html`<button type="button" role="tab" id="tab-m-${k}" aria-controls="panel-m-${k}" aria-selected="${d.method === k}" tabindex="${d.method === k ? 0 : -1}" data-action="ob-method" data-method="${k}">${label}${k === rec ? ' (recommended)' : ''}</button>`)}</div>
+      ${methods.map(([k, label, code, lang]) => html`<div role="tabpanel" id="panel-m-${k}" aria-labelledby="tab-m-${k}" class="tab-panel" ${d.method === k ? '' : raw('hidden')}>${ui.codeBlock(code, `${label} · ${lang}`)}</div>`)}
+      <details class="small"><summary class="link-btn">What does this configuration do?</summary>
+        <ul style="margin-top:6px">
+          <li><strong>OTEL_SERVICE_NAME</strong>: names your service in dashboards and alerts.</li>
+          <li><strong>OTEL_RESOURCE_ATTRIBUTES</strong>: labels every piece of data with your CAMR ID, environment and component, so it’s linked to ${app.name} and its owners. ${ui.help('attributes', 'Why this matters')}</li>
+          <li><strong>OTEL_EXPORTER_OTLP_ENDPOINT</strong>: where to send data. This is the ${d.env} collector for ${tel.region(app.region).name}. ${ui.help('collector', 'What’s a collector?')}</li>
+          <li><strong>*_EXPORTER</strong>: turns each signal on or off to match what you chose.</li>
+          ${d.signals.includes('traces') ? html`<li><strong>OTEL_TRACES_SAMPLER</strong> and <strong>_ARG</strong>: how many traces to keep. ${d.env === 'prod' ? '10% in prod keeps costs predictable, and errors are always kept.' : '100% outside prod, so you see every request while testing.'}</li>` : ''}
+          ${d.signals.includes('logs') ? html`<li><strong>opera.example/collect-logs</strong>: tells the platform’s log agent to collect this pod’s output as JSON.</li>` : ''}
+        </ul></details>`;
+  }
+  /** Results area plus the Run button. The ids are what the run/recheck handlers look for. */
+  function checksBlock(d, errors) {
+    return html`<div id="ob-results" tabindex="-1">${d.checks ? resultsBlock(d.checks, 'ob') : ''}</div>
+      <div class="btn-row" style="margin-top:12px">
+        <button type="button" class="btn ${d.checks ? '' : 'btn-primary'}" data-action="ob-run-checks" id="ob-run">${ui.icon('refresh')}${d.checks ? 'Run all checks again' : 'Run checks'}</button>
+        ${errors.checks ? html`<p class="error-msg" id="ob-checks-err" style="margin:0">${errors.checks}</p>` : ''}
+      </div>`;
+  }
+
+  function stepConnect(d, errors) {
     return html`
       <h2>Connect your service</h2>
       <p class="step-lead">Add the configuration, deploy as you normally do, then let OperA check that data arrives. We filled in every value for you.</p>
       <ol class="numbered">
-        <li><h3>Add this configuration</h3>
-          <p class="small">Registry says ${app.name} runs on ${app.platform === 'kubernetes' ? 'Kubernetes' : 'virtual machines'}, so that tab is selected.</p>
-          <div class="tabs" role="tablist" aria-label="Deployment type">${methods.map(([k, label]) => html`<button type="button" role="tab" id="tab-m-${k}" aria-controls="panel-m-${k}" aria-selected="${d.method === k}" tabindex="${d.method === k ? 0 : -1}" data-action="ob-method" data-method="${k}">${label}${k === recommended ? ' (recommended)' : ''}</button>`)}</div>
-          ${methods.map(([k, label, code, lang]) => html`<div role="tabpanel" id="panel-m-${k}" aria-labelledby="tab-m-${k}" class="tab-panel" ${d.method === k ? '' : raw('hidden')}>${ui.codeBlock(code, `${label} · ${lang}`)}</div>`)}
-          <details class="small"><summary class="link-btn">What does this configuration do?</summary>
-            <ul style="margin-top:6px">
-              <li><strong>OTEL_SERVICE_NAME</strong>: names your service in dashboards and alerts.</li>
-              <li><strong>OTEL_RESOURCE_ATTRIBUTES</strong>: labels every piece of data with your CAMR ID, environment and component, so it’s linked to ${app.name} and its owners. ${ui.help('attributes', 'Why this matters')}</li>
-              <li><strong>OTEL_EXPORTER_OTLP_ENDPOINT</strong>: where to send data. This is the ${d.env} collector for ${tel.region(app.region).name}. ${ui.help('collector', 'What’s a collector?')}</li>
-              <li><strong>*_EXPORTER</strong>: turns each signal on or off to match what you chose.</li>
-              ${d.signals.includes('traces') ? html`<li><strong>OTEL_TRACES_SAMPLER</strong> and <strong>_ARG</strong>: how many traces to keep. ${d.env === 'prod' ? '10% in prod keeps costs predictable, and errors are always kept.' : '100% outside prod, so you see every request while testing.'}</li>` : ''}
-              ${d.signals.includes('logs') ? html`<li><strong>opera.example/collect-logs</strong>: tells the platform’s log agent to collect this pod’s output as JSON.</li>` : ''}
-            </ul></details>
-        </li>
+        <li><h3>Add this configuration</h3>${configBlock(d)}</li>
         <li><h3>Deploy to ${d.env}</h3><p class="small">Deploy the way you normally do. OperA doesn’t change your pipeline or your code.</p></li>
         <li><h3>Check that data arrives</h3>
           <p class="small">Takes about 10 seconds. Run it as many times as you like.</p>
-          <div id="ob-results" tabindex="-1">
-            ${d.checks ? resultsBlock(d.checks, 'ob') : ''}
-          </div>
-          <div class="btn-row" style="margin-top:12px">
-            <button type="button" class="btn ${d.checks ? '' : 'btn-primary'}" data-action="ob-run-checks" id="ob-run">${ui.icon('refresh')}${d.checks ? 'Run all checks again' : 'Run checks'}</button>
-            ${errors.checks ? html`<p class="error-msg" id="ob-checks-err" style="margin:0">${errors.checks}</p>` : ''}
-          </div>
+          ${checksBlock(d, errors)}
         </li>
       </ol>`;
   }
@@ -295,12 +300,14 @@
         const prefill = { camrId: app ? app.camrId : null, query: app ? '' : q.app, service: svc ? svc.name : (app && app.services.length === 1 ? app.services[0].name : null), component: cmp, env };
         if (!d || d.camrId !== prefill.camrId || q.fresh) d = newDraft(prefill);
         else if (d.step === 0) { Object.assign(d, { service: prefill.service || d.service, component: prefill.component || d.component, env: prefill.env || d.env, checks: null }); }
+        preselectSignals(d);
         touch();
         history.replaceState(null, '', '#/onboard');
       }
       if (!d) d = newDraft();
       const errors = OperA.views.onboard.errors || {};
       OperA.views.onboard.errors = null;
+      if (OperA.design() === 'console') return OperA.views.onboardConsole.render(d, errors);
       const errList = Object.entries(errors).filter(([, v]) => v);
       const body = [stepIdentify, stepSignals, stepConnect, stepReview][d.step](d, errors);
       const app = d.camrId ? reg.app(d.camrId) : null;
@@ -360,24 +367,37 @@
     Object.assign(draft(), { camrId: null, service: null, component: null, env: null, signals: [], checks: null });
     touch(); OperA.refresh(); const i = document.getElementById('ob-app-q'); if (i) i.focus();
   };
+  /** Recommended signals that aren't set up yet, unless the person has already chosen their own. */
+  function preselectSignals(d) {
+    if (d.signalsTouched || !d.camrId || !d.service || !d.component || !d.env) return;
+    const app = reg.app(d.camrId);
+    const cv = reg.coverage(app, d.service, d.component, d.env);
+    d.signals = recommended(app).filter((s) => cv[s] === 'none' || cv[s] === 'partial');
+  }
   OperA.changes['ob-set'] = (el) => {
     const d = draft(); const key = el.dataset.key;
-    d[key] = el.value;
-    if (key === 'service') { d.component = null; d.env = null; }
+    d[key] = el.value || null;
+    if (key === 'service') {
+      d.component = null; d.env = null;
+      const svc = d.service && reg.service(reg.app(d.camrId), d.service);
+      if (svc && svc.components.length === 1) d.component = svc.components[0].name;
+    }
     if (key === 'component') d.env = null;
+    if (key === 'env') preselectSignals(d);
     d.checks = null; touch(); OperA.refresh();
   };
   OperA.changes['ob-signal'] = (el) => {
     const d = draft();
     d.signals = D.signals.filter((s) => (s === el.value ? el.checked : d.signals.includes(s)));
     d.signalsTouched = true; d.checks = null; touch();
+    if (OperA.design() === 'console') OperA.refresh(); // the readiness panel and configuration update live
   };
   OperA.actions['ob-method'] = (btn) => { OperA.ui.activateTab(btn); draft().method = btn.dataset.method; draft().methodChosen = true; touch(); };
   OperA.actions['focus-field'] = (el) => { const f = document.getElementById(el.dataset.field); if (f) f.focus(); };
 
-  function validateStep(d) {
+  function validateStep(d, step = d.step) {
     const e = {};
-    if (d.step === 0) {
+    if (step === 0) {
       const app = d.camrId && reg.app(d.camrId);
       if (!app) e.app = 'Choose your application. Search by name or CAMR ID.';
       else if (app.status === 'retired') e.app = 'This application is retired and can’t be onboarded.';
@@ -386,14 +406,14 @@
         else if (!d.component) e.component = 'Choose a component.';
         else if (!d.env) e.env = 'Choose an environment.';
       }
-    } else if (d.step === 1) {
+    } else if (step === 1) {
       if (!d.signals.length) {
         const cv = reg.coverage(reg.app(d.camrId), d.service, d.component, d.env);
         e.signals = D.signals.every((s) => cv[s] === 'active' || cv[s] === 'onboarding')
           ? 'Everything is already set up or in progress for this component. Go back and choose another environment or component.'
           : 'Choose at least one signal to collect.';
       }
-    } else if (d.step === 2) {
+    } else if (step === 2) {
       if (!d.checks) e.checks = 'Run the checks first so you know your setup works.';
       else if (validation.summary(d.checks).blocked) e.checks = 'Fix the blocking problem before you continue. Use “Get help” if you’re stuck.';
     }
@@ -401,16 +421,10 @@
   }
   OperA.actions['ob-next'] = () => {
     const d = draft();
-    if (d.step === 1) { // pick up checkbox state even if change event didn't fire
-      d.signals = D.signals.filter((s) => { const el = document.getElementById(`ob-sig-${s}`); return el && el.checked && !el.disabled; });
-    }
+    if (d.step === 1) syncSignalsFromPage(d); // pick up checkbox state even if the change event didn't fire
     const e = validateStep(d);
     if (Object.keys(e).length) { OperA.views.onboard.errors = e; OperA.render(); return; }
-    if (d.step === 0 && !d.signalsTouched) {
-      const app = reg.app(d.camrId);
-      const cv = reg.coverage(app, d.service, d.component, d.env);
-      d.signals = recommended(app).filter((s) => cv[s] === 'none' || cv[s] === 'partial');
-    }
+    if (d.step === 0) preselectSignals(d);
     d.step += 1; touch(); OperA.render();
   };
   OperA.actions['ob-back'] = () => { const d = draft(); d.step = Math.max(0, d.step - 1); touch(); OperA.render(); };
@@ -446,6 +460,13 @@
   }
   OperA.actions['ob-run-checks'] = () => {
     const d = draft();
+    if (OperA.design() === 'console') {
+      // On the single page nothing stops you pressing Run early, so say what's missing.
+      syncSignalsFromPage(d);
+      const e = Object.assign({}, validateStep(d, 0));
+      if (!Object.keys(e).length) Object.assign(e, validateStep(d, 1));
+      if (Object.keys(e).length) { OperA.views.onboard.errors = e; touch(); OperA.render(); return; }
+    }
     if (d.checks) d.checks.forEach((c) => { if (c.state !== 'pass') d.attempts[c.id] = (d.attempts[c.id] || 0) + 1; });
     runChecks();
   };
@@ -491,13 +512,13 @@
     OperA.toast(`Help request ${id} sent to Telemetry Platform with your diagnostics. Typical first reply: within 2 business hours in #telemetry-platform.`);
   };
 
-  OperA.actions['ob-submit'] = () => {
+  /** Create the request from the draft. Returns the new request id. */
+  function submitDraft() {
     const d = draft(); const c = ctx(d); const app = c.app;
     const me = D.personas[store.state.role];
     const member = reg.isMember(app, me.name);
     const s = validation.summary(d.checks || []);
-    if (!d.checks || s.blocked) { d.step = 2; OperA.views.onboard.errors = { checks: 'Run the checks and fix any blocking problem before submitting.' }; touch(); OperA.render(); return; }
-    let status; let history;
+    let status;
     const id = store.nextId('REQ');
     const now = Date.now();
     const hist = [ { at: now, text: `Request submitted by ${me.name}.` } ];
@@ -508,6 +529,27 @@
       status, requester: me.name, createdAt: now, approver: app.appOwner, etaMinutes: 15, scenario: d.scenario, attempts: Object.assign({}, d.attempts),
       needsApproval: d.env === 'prod' || !member, history: hist, mine: true });
     store.state.draft = null; store.save();
-    OperA.go(`#/requests/${id}?new=1`);
+    return id;
+  }
+  OperA.actions['ob-submit'] = () => {
+    const d = draft();
+    if (OperA.design() === 'console') {
+      // One page, so check everything at once and show every problem together.
+      syncSignalsFromPage(d);
+      const e = Object.assign({}, validateStep(d, 0));
+      if (!Object.keys(e).length) Object.assign(e, validateStep(d, 1));
+      if (!Object.keys(e).length) Object.assign(e, validateStep(d, 2));
+      if (Object.keys(e).length) { OperA.views.onboard.errors = e; touch(); OperA.render(); return; }
+    } else if (!d.checks || validation.summary(d.checks).blocked) {
+      d.step = 2; OperA.views.onboard.errors = { checks: 'Run the checks and fix any blocking problem before submitting.' }; touch(); OperA.render(); return;
+    }
+    OperA.go(`#/requests/${submitDraft()}?new=1`);
   };
+  function syncSignalsFromPage(d) {
+    const boxes = D.signals.map((s) => document.getElementById(`ob-sig-${s}`)).filter(Boolean);
+    if (boxes.length) d.signals = D.signals.filter((s) => { const el = document.getElementById(`ob-sig-${s}`); return el && el.checked && !el.disabled; });
+  }
+
+  /* Pieces the Console layout's single-page onboarding reuses. */
+  OperA.onboard = { PREREQ, draft, ctx, appResults, recommended, configBlock, checksBlock };
 })();

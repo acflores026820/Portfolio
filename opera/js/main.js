@@ -13,6 +13,7 @@
       const panel = document.getElementById(t.getAttribute('aria-controls'));
       if (panel) panel.hidden = !on;
     });
+    OperA.markScrollable(); // a newly shown panel may hold a table that overflows
   }
   OperA.ui.activateTab = activateTab;
   OperA.actions.tab = (btn) => activateTab(btn);
@@ -40,6 +41,7 @@
     e.preventDefault();
     document.getElementById('main').focus();
   });
-  if (!location.hash) history.replaceState(null, '', '#/home');
+  // First visit: let the person pick a layout. After that, land on home.
+  if (!location.hash) history.replaceState(null, '', OperA.store.state.chosen ? '#/home' : '#/choose');
   OperA.render();
 })();

@@ -68,17 +68,43 @@
     alerts: {},
     proto: { validation: 'realistic', dataSource: 'normal' },
     seq: 3110,
+    // Layout preferences. Each role picks its own layout: 'guided' or 'console'.
+    design: { app: 'guided', ops: 'guided' },
+    chosen: false,          // has the person picked a layout on the chooser page?
+    shortcuts: true,        // single-key shortcuts in the Console layout (can be turned off)
+    triage: { status: 'open', scope: '' },
   });
+  const PREFS = ['design', 'chosen', 'shortcuts'];
   let state;
-  try { state = Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY) || '{}')); }
-  catch (e) { state = defaults(); }
+  function load(saved) {
+    const d = defaults();
+    state = Object.assign(d, saved);
+    state.design = Object.assign({ app: 'guided', ops: 'guided' }, saved && saved.design);
+    state.triage = Object.assign({ status: 'open', scope: '' }, saved && saved.triage);
+  }
+  try { load(JSON.parse(localStorage.getItem(KEY) || '{}')); }
+  catch (e) { load({}); }
   const store = {
     get state() { return state; },
     save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode: keep in memory */ } },
-    reset() { state = defaults(); store.save(); },
+    /** Clear prototype data. keepPrefs keeps the layout choices (used by scenario launchers). */
+    reset({ keepPrefs = false } = {}) {
+      const keep = {};
+      if (keepPrefs) PREFS.forEach((k) => { keep[k] = state[k]; });
+      load(keep); store.save();
+    },
     nextId(prefix) { state.seq += 1; store.save(); return `${prefix}-${state.seq}`; },
   };
   OperA.store = store;
+
+  /* Layout ("design") for the current role, reflected on <html> so CSS can theme it. */
+  OperA.design = () => (state.design[state.role] === 'console' ? 'console' : 'guided');
+  OperA.applyDesign = () => {
+    const el = document.documentElement;
+    el.dataset.design = OperA.design();
+    el.dataset.role = state.role;
+  };
+  OperA.applyDesign();
 
   /* =====================================================================
    * Registry lookups
@@ -463,13 +489,33 @@
   }
   OperA.go = (hash) => { if (location.hash === hash) OperA.render(); else location.hash = hash; };
 
+  /* Wide tables scroll sideways inside their own box on small screens. When one does,
+     make the box focusable and named so keyboard and screen-reader users can scroll it. */
+  OperA.markScrollable = function (root = document.getElementById('main')) {
+    root.querySelectorAll('.table-wrap').forEach((el) => {
+      if (el.scrollWidth > el.clientWidth + 1) {
+        el.tabIndex = 0; el.setAttribute('role', 'region');
+        const cap = el.querySelector('caption');
+        el.setAttribute('aria-label', `${cap ? cap.textContent.trim() : 'Table'} (scrolls sideways)`);
+      } else if (el.hasAttribute('tabindex')) {
+        el.removeAttribute('tabindex'); el.removeAttribute('role'); el.removeAttribute('aria-label');
+      }
+    });
+  };
+  let resizeTimer;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => OperA.markScrollable(), 150); });
+
   let firstRender = true;
   OperA.render = function ({ keepFocus = false } = {}) {
     const { path, query } = parseHash();
     let match = null;
     for (const [re, view] of routes) { const m = path.match(re); if (m) { match = { view, params: m.slice(1) }; break; } }
     const main = document.getElementById('main');
+    OperA.applyDesign();
     const scrollY = window.scrollY;
+    // Panes that scroll on their own (Console layout) keep their position across re-renders.
+    const paneScroll = {};
+    main.querySelectorAll('[data-scroll-key]').forEach((el) => { paneScroll[el.dataset.scrollKey] = el.scrollTop; });
     const activeId = document.activeElement && document.activeElement.id;
     let focusHandled = false;
     if (!match) {
@@ -484,6 +530,11 @@
     }
     OperA.ui.renderNav();
     if (OperA.assistant) OperA.assistant.onRoute();
+    OperA.markScrollable(main);
+    main.querySelectorAll('[data-scroll-key]').forEach((el) => {
+      const y = paneScroll[el.dataset.scrollKey];
+      if (y && (keepFocus || el.dataset.scrollKeep === 'route')) el.scrollTop = y;
+    });
     if (focusHandled) {
       // leave focus where the view put it
     } else if (keepFocus) {

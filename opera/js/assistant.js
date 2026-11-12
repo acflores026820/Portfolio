@@ -11,7 +11,7 @@
 (function () {
   'use strict';
   const OperA = window.OperA;
-  const { html, fmt, reg, tel, alerts, requests, validation, store, ui } = OperA;
+  const { html, fmt, reg, tel, alerts, requests, store, ui } = OperA;
   const D = OperA.data;
 
   const log = []; // conversation for this page view

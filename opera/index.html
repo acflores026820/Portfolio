@@ -7,6 +7,7 @@
 <meta name="description" content="OperA — an application-centered, self-service observability platform prototype. Less chasing. More solving." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f4fd1'/%3E%3Cpath d='M7 17h4l3-7 4 13 3-6h4' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="css/opera.css" />
+<link rel="stylesheet" href="css/console.css" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -39,11 +40,17 @@
     <button type="button" data-action="set-role" data-role="ops" aria-pressed="false">DevOps / Ops</button>
   </div>
 
+  <div class="role-switch design-switch" role="group" aria-labelledby="design-switch-label">
+    <span id="design-switch-label" class="role-switch-label">Layout</span>
+    <button type="button" data-action="set-design" data-design="guided" aria-pressed="true">Guided</button>
+    <button type="button" data-action="set-design" data-design="console" aria-pressed="false">Console</button>
+  </div>
+
   <button class="assistant-btn" type="button" data-action="toggle-assistant" aria-expanded="false" aria-controls="assistant">
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
     <span>Ask OperA</span>
   </button>
-  <div class="user-chip" id="user-chip" aria-label="Signed in user"></div>
+  <div class="user-chip" id="user-chip" role="group" aria-label="Signed in user"></div>
 </header>
 
 <div class="layout">
@@ -76,6 +83,8 @@
 <script src="js/views/runbooks.js"></script>
 <script src="js/views/search.js"></script>
 <script src="js/views/about.js"></script>
+<script src="js/views/console.js"></script>
+<script src="js/views/choose.js"></script>
 <script src="js/assistant.js"></script>
 <script src="js/main.js"></script>
 </body>

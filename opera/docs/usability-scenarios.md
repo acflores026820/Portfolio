@@ -1,11 +1,13 @@
 # OperA usability scenarios and design validation
 
-**Prototype v0.1 · November 2026**
+**Prototype v0.2 · November 2026**
 
 > ### ⚠️ These are simulated walkthroughs, not user testing
-> Every scenario below was walked through by the design team using **simulated personas** (a cognitive walkthrough), then re-run as a **script** (`opera/tests/walkthroughs.js`) that drives the prototype in a real browser and counts interactions.
+> Every scenario below was walked through by the design team using **simulated personas** (a cognitive walkthrough), then re-run as a **script** (`opera/tests/walkthroughs.js`) that drives the prototype in a real browser, in **both layouts** (Guided and Console), and counts interactions.
 >
 > **No real users took part. Nothing here is user feedback, and the ratings are design judgements, not measured outcomes.** They tell us where the design is most likely to work or fail, so that real testing (section 5) can focus there.
+>
+> **What changed in v0.2:** every scenario now runs in both layouts, and the four findings left open in v0.1 (numbers 9 to 12 in section 4) are fixed. Interaction counts below are re-measured.
 
 ---
 
@@ -38,7 +40,9 @@
 
 **Ratings:** ✅ Good · ⚠️ Watch (works, with a risk to validate) · ❌ Problem (must fix)
 
-**How to reproduce:** open `#/about` in the prototype and choose **Start** next to a scenario, or run:
+**Layouts.** Each scenario was walked through in both. Guided is step by step; Console puts everything on one screen (see `design-review.md` § 5). The alert parts, dialogs and validation are the same code in both, so the per-scenario evaluations below apply to both unless a row says otherwise.
+
+**How to reproduce:** open `#/about` in the prototype and choose **Start … in Guided** or **Start … in Console** next to a scenario, or run:
 
 ```bash
 python3 -m http.server 8765          # from the repository root
@@ -49,17 +53,37 @@ node opera/tests/walkthroughs.js     # needs the playwright package
 
 ## 2. Results at a glance
 
-Interaction counts were measured by `tests/walkthroughs.js` (one click, typed field, checkbox or selection = one interaction). All seven scripted runs pass.
+Interaction counts were measured by `tests/walkthroughs.js` (one click, typed field, tick or selection = one interaction). All 15 scripted runs pass: seven scenarios in each layout, plus a Console-only shortcut check.
 
-| Scenario | Interactions | Completion | Clarity | Steps | Error recovery | Stakeholders | Accuracy | Accessibility |
+### Interactions by layout
+
+| Scenario | Guided | Console | Why they differ |
+|---|---|---|---|
+| A-App · Onboard rewards-api to qa | 11 | **8** | One page instead of four steps |
+| A-Ops · ALR-2044, incomplete ownership | 10 (7 core) | **9** (6 core) | The queue is always on screen, so there's no separate page to open |
+| B-Ops · ALR-2041, rollback | 10 (8 without the deliberate error) | **9** | Same reason |
+| B-App · ALR-2045, first on-call | 10 | 10 | Same alert parts once the alert is open |
+| C-Ops · ALR-2042, pipeline "no data" | 5 | **3** | The Console opens on the most urgent alert, which is this one |
+| C-App · "Are my missing logs my fault?" | 2 | 2 | Same screen in both |
+| Recovery · onboarding errors and bad IDs | 6 | 6 | Same handling |
+
+B-Ops took 15 interactions in v0.1. It now takes 10 in Guided because the correlated deploy is shown inside the procedure step (2 fewer) and the page and approval request go out as one notification (3 fewer).
+
+Fewer interactions is not the same as easier. The counts show how much navigation each layout needs. They say nothing about whether someone understood the screen.
+
+### Ratings by scenario
+
+Ratings apply to both layouts unless the last column says otherwise.
+
+| Scenario | Completion | Clarity | Steps | Error recovery | Stakeholders | Accuracy | Accessibility | Console differs? |
 |---|---|---|---|---|---|---|---|---|
-| A-App · Onboard rewards-api to qa | 11 | ✅ | ✅ | ✅ | ✅ | ✅ 0 people | ✅ | ✅ |
-| A-Ops · ALR-2044, incomplete ownership | 10 (7 core) | ✅ | ✅ | ✅ | ✅ | ✅ 1 page, necessary | ⚠️ | ✅ |
-| B-Ops · ALR-2041, rollback | 15 (13 without the deliberate error) | ✅ | ✅ | ⚠️ | ✅ | ⚠️ same person notified twice | ✅ | ✅ |
-| B-App · ALR-2045, first on-call | 10 | ✅ | ⚠️ | ✅ | ✅ | ✅ 1 approver, necessary | ✅ | ✅ |
-| C-Ops · ALR-2042, pipeline "no data" | 5 | ✅ | ✅ | ✅ | ✅ | ✅ 0 pages (1 avoided) | ✅ | ✅ |
-| C-App · "Are my missing logs my fault?" | 2 | ✅ | ✅ | ✅ | n/a | ✅ 0 people | ✅ | ✅ |
-| Recovery · wizard errors and bad IDs | 6 | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ✅ |
+| A-App | ✅ | ✅ | ✅ | ✅ | ✅ 0 people | ✅ | ✅ | ⚠️ Clarity: prerequisites and term definitions are folded away |
+| A-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 1 page, necessary | ✅ | ✅ | Gaps are visible in the queue row itself ("No on-call", "No procedure") |
+| B-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 1 notification | ✅ | ✅ | No |
+| B-App | ✅ | ✅ | ✅ | ✅ | ✅ 1 approver, necessary | ✅ | ✅ | ⚠️ Clarity: a first-timer sees queue, alert and ownership at once |
+| C-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 0 pages (1 avoided) | ✅ | ✅ | No navigation needed at all |
+| C-App | ✅ | ✅ | ✅ | n/a | ✅ 0 people | ✅ | ✅ | No |
+| Recovery | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ✅ | One error summary for the whole page instead of one per step |
 
 ---
 
@@ -98,6 +122,8 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 | Stakeholder assistance | ✅ | **0 people.** qa is auto-approved for the owning team. |
 | Operational accuracy | ✅ | Generated configuration carries all required attributes, the region-correct collector endpoint and environment-appropriate sampling (1.0 in qa, 0.1 in prod). The platform-incident note stops Jordan "fixing" working logs. |
 | Accessibility | ✅ | Completed using only roles and accessible names. Progress and results announced. Error summary focused and linked. |
+
+**In the Console layout (8 interactions):** Onboard → pick *Rewards Engine* → choose the service (the component is selected for you) → choose `qa` (recommended signals are ticked for you and the configuration appears) → Run checks → re-check logs → re-check traces → Submit. A readiness panel beside the form shows what's still missing and whether approval is needed, and Submit with something missing lists every problem at once. The fix guidance is identical. Prerequisites and term definitions are folded away, which is the main risk for a newcomer.
 
 **Changes made after this walkthrough**
 
@@ -138,7 +164,7 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 | Unnecessary steps | ✅ | The 3 gap-reporting interactions are optional for the incident but stop the next responder repeating it. |
 | Validation and error recovery | ✅ | Paging needs a reason (validated). The support group is labelled "business hours only". |
 | Stakeholder assistance | ✅ | 1 page (necessary). Registry and procedure fixes go straight to the owner. |
-| Operational accuracy | ⚠️ | The fallback is correct, but see the finding below. |
+| Operational accuracy | ✅ | The fallback is correct. The escalation card now carries a standing rule: "Customers affected right now? Don't wait for the timers", which pages the incident commander directly. |
 | Accessibility | ✅ | Role/name-only run. Dialog focus is managed. |
 
 **Changes made after this walkthrough**
@@ -147,8 +173,8 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 
 **Risks to validate**
 
-- After hours, with customer impact, the support group can't be reached. Do responders understand they should go straight to the incident commander? A conditional rule may be needed ("customer impact > X% → IC now").
-- Will owners act on registry reports? This needs a follow-up mechanism (see open questions in `design-review.md` § 10).
+- After hours, with customer impact, the support group can't be reached. The card now says to page the incident commander without waiting (v0.2). Still to validate: do responders notice and use it, and should it become an automatic rule ("customer impact > X% → IC now")?
+- Will owners act on registry reports? This needs a follow-up mechanism (see open questions in `design-review.md` § 11).
 
 ---
 
@@ -156,32 +182,33 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 
 **Persona:** Sam Ortiz
 **Goal:** Handle **ALR-2041**: Checkout API p99 latency at 1.9 s, 18 minutes in. Determine the cause, take the appropriate action **without running anything unapproved**, and escalate on time.
-**Start:** Alerts queue
-**Done when:** rollback approval is requested with a valid change record, and the due escalation is sent with context.
+**Start:** Alerts queue (Guided) or the triage console (Console)
+**Done when:** rollback approval is requested with a valid change record, and the due escalation has gone out with context.
 
-**Walkthrough (15 interactions, including one deliberate mistake):**
+**Walkthrough (Guided: 10 interactions, including one deliberate mistake. Console: 9.)**
 
 | # | Action | What Sam sees |
 |---|---|---|
-| 1–2 | Alerts → ALR-2041 | Next step: "Acknowledge… Escalation is due now: Priya Raman". Assessment: application, high confidence. Evidence: deploy v2.14.0 **8 minutes before** the alert; 71% of slow traces wait on checkout-pricing. |
-| 3 | Acknowledge | Procedure RB-101 with step 1 marked *Next* |
-| 4–5 | Recent changes → Close | Deploy flagged "Just before the alert" |
-| 6 | Request rollback | Approval dialog: action, target, blast radius, rollback plan, approver. "Nothing changes until Priya Raman approves." |
-| 7–10 | Change record `204118` (wrong format), reason, confirm, submit | Specific error: "'204118' isn't a change record number. It should look like CHG-204118." Focus moves to the field. |
-| 11–12 | Fix to `CHG-204118` → resubmit | "Waiting for Priya Raman" |
-| 13–15 | Page Priya Raman (ladder) → reason → Send | Ladder step marked "Paged just now" |
+| 1–2 | Alerts → ALR-2041 (Console: one click in the list) | Next step: "Acknowledge… Escalation is due now: Priya Raman". Assessment: application, high confidence. Evidence: deploy v2.14.0 **8 minutes before** the alert; 71% of slow traces wait on checkout-pricing. |
+| 3 | Acknowledge | Procedure RB-101 with step 1 marked *Next*. Step 2 ("Check for recent changes") already shows the deploy, flagged "Just before the alert". Nothing to open. |
+| 4 | Request rollback | Approval dialog: action, target, blast radius, rollback plan, approver. "Nothing changes until Priya Raman approves." **"Also page Priya Raman now, in the same notification"** is ticked, because Priya is due on the escalation path. |
+| 5–8 | Change record `204118` (wrong format), reason, confirm, submit | Specific error: "'204118' isn't a change record number. It should look like CHG-204118." Focus moves to the field. "What's a change record, and how do I get one?" is beside it. |
+| 9–10 | Fix to `CHG-204118` → resubmit | "Waiting for Priya Raman". Activity: "Paged Priya Raman and requested approval in one notification". The escalation ladder shows Priya as paged. |
 
 | Criterion | Rating | Evidence |
 |---|---|---|
-| Task completion | ✅ | Rollback requested correctly. Escalation sent on time. |
+| Task completion | ✅ | Rollback requested correctly. Escalation sent on time, in the same action. |
 | Clarity of instructions | ✅ | Next step names both the action and the due escalation. The procedure's decision callout covers the "errors too?" branch. |
-| Unnecessary steps | ⚠️ | Steps 4–5 (opening changes) are redundant, because the deploy is already in the evidence list. They're optional, but people will probably click. Consider showing the change inline. |
+| Unnecessary steps | ✅ | v0.1 needed 15 interactions. Showing the deploy inline removed 2, and combining the page with the approval request removed 3. |
 | Validation and error recovery | ✅ | Format error is specific, focused and fixable without losing the other fields. |
-| Stakeholder assistance | ⚠️ | Priya gets **two** notifications, an approval request and a page, for one situation. Both are needed, but should arrive as one message. |
+| Stakeholder assistance | ✅ | Priya gets **one** notification carrying both the page and the approval request. The option can be unticked if a page isn't wanted. |
 | Operational accuracy | ✅ | Nothing ran. Approver is the app on-call. Tier 1 timer (15 min) is correct. You can't approve your own request. |
 | Accessibility | ✅ | Dialog opens with Enter, traps focus, Escape returns focus. Invalid field gets `aria-invalid` plus linked error. |
 
-**Open finding (not yet fixed):** when the approver is also the person being paged, offer "Page and request approval" as one action with one notification.
+**Changes made after the v0.1 walkthrough (both now fixed)**
+
+- Recent changes are shown inside the procedure step that asks for them.
+- When the approver is also next on the escalation path, the page and the approval request are one notification.
 
 ---
 
@@ -205,7 +232,7 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 | Criterion | Rating | Evidence |
 |---|---|---|
 | Task completion | ✅ | Correct action requested from the correct approver. |
-| Clarity of instructions | ⚠️ | Mostly clear. Terms like "Tier 2 policy" and "change record" assume organisational knowledge a first-time on-call may not have. |
+| Clarity of instructions | ✅ | Clear. The terms a first-timer may not know are now explained where they appear: "What does Tier 2 mean?" on the escalation card, and "What's a change record, and how do I get one?" in the approval dialog. In the Console layout this scenario is denser (⚠️): queue, alert and ownership are all on screen. |
 | Unnecessary steps | ✅ | Ticking steps is optional but gives the hand-off a record. |
 | Validation and error recovery | ✅ | Same approval validations as B-Ops. |
 | Stakeholder assistance | ✅ | 1 approver (necessary). No platform team involved. |
@@ -217,7 +244,7 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 - The assistant scrolled to the *end* of long answers, so the summary's first lines were hidden. It now scrolls to the start of the newest answer.
 - With the assistant open, the alert page kept its two-column layout and squeezed the chart. The layout now responds to the space actually available (container queries).
 
-**Risks to validate:** how does a first-time on-call get a change record number at 3 a.m.? The product should link to "create emergency change" or let an approver attach one.
+**Risks to validate:** the dialog now explains how to get a change record (create an emergency change, or ask the approver to attach one). Is that enough at 3 a.m., or should the product create one itself?
 
 ---
 
@@ -228,7 +255,9 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 **Start:** Alerts queue (row already marked **Telemetry issue**)
 **Done when:** the alert is linked to the telemetry incident, and the application team is not paged.
 
-**Walkthrough (5 interactions):** open queue → open alert → *Link to TEL-552* (next step) → tick "Hold paging Core Ledger…" → confirm.
+**Walkthrough (Guided, 5 interactions):** open queue → open alert → *Link to TEL-552* (next step) → tick "Hold paging Core Ledger…" → confirm.
+
+**In the Console layout (3 interactions):** the triage console opens on the most urgent alert, which is this one, so Sam starts at *Link to TEL-552*.
 
 | Criterion | Rating | Evidence |
 |---|---|---|
@@ -269,7 +298,7 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 
 ### Recovery · Errors and bad identifiers (supporting scenario)
 
-**Walkthrough (6 interactions):**
+**Walkthrough (6 interactions in both layouts).** In the Console layout step 2 is *Submit request* with nothing chosen, and the summary lists every missing item at once:
 
 | # | Action | Outcome |
 |---|---|---|
@@ -292,10 +321,17 @@ Interaction counts were measured by `tests/walkthroughs.js` (one click, typed fi
 | 6 | Tier 3 escalation path never reached the incident commander | ✅ Fixed |
 | 7 | Assistant answers scrolled out of view; layout squeezed with assistant open | ✅ Fixed |
 | 8 | axe: logo name mismatch, notice outside landmark, heading skip, unreachable scroll region | ✅ Fixed |
-| 9 | Approver and paged on-call can be the same person → two notifications | ⚠️ Open |
-| 10 | Opening "Recent changes" duplicates evidence already shown | ⚠️ Open (show inline) |
-| 11 | Organisational terms (tier policy, change record) for first-time on-call | ⚠️ Open (glossary and links) |
-| 12 | After-hours Tier 3 with customer impact relies on judgement | ⚠️ Open (conditional rule) |
+| 9 | Approver and paged on-call can be the same person → two notifications | ✅ Fixed in v0.2 (one combined notification) |
+| 10 | Opening "Recent changes" duplicates evidence already shown | ✅ Fixed in v0.2 (shown inside the procedure step) |
+| 11 | Organisational terms (tier policy, change record) for first-time on-call | ✅ Fixed in v0.2 (explained where they appear) |
+| 12 | After-hours Tier 3 with customer impact relies on judgement | ✅ Fixed in v0.2 (standing "customers affected?" rule on the escalation card). Still worth testing. |
+| 13 | At narrow widths the assistant button had no accessible name, and the user chip had a label without a role | ✅ Fixed (found by auditing phone and tablet widths) |
+| 14 | A few standalone links were under 24 px tall | ✅ Fixed |
+| 15 | A wide table couldn't be scrolled by keyboard on a phone-width screen | ✅ Fixed |
+| 16 | Cards in a grid were misaligned by a stray margin | ✅ Fixed |
+| 17 | Console: the queue re-sorts when an alert is acknowledged, so the selected row moves | ⚠️ Open (selection follows the alert; watch in real use) |
+| 18 | Console: prerequisites and definitions are folded away, which may lose newcomers | ⚠️ Open (Guided is the suggested starting point for application teams) |
+| 19 | Two layouts cost more to maintain than one | ⚠️ Open (decide after testing whether both earn their place) |
 
 ---
 
@@ -309,7 +345,9 @@ The scenarios above are the task set. Real testing should check the ⚠️ risks
 - 5–6 DevOps or operations engineers who handle alerts for applications they don't own.
 - At least 2 participants who use a screen reader, and 1 who uses keyboard only or magnification. Recruit for this; don't assume it.
 
-**Format:** 60-minute moderated sessions, think-aloud, on a staging build with realistic but synthetic data. Use the **prototype controls** to set each scenario's state before the session, not in front of the participant.
+**Layouts:** each participant does the scenarios in both layouts, in alternating order between participants, then says which they would keep and why.
+
+**Format:** 75-minute moderated sessions, think-aloud, on a staging build with realistic but synthetic data. Use the **prototype controls** to set each scenario's state before the session, not in front of the participant.
 
 **Measures**
 
@@ -322,7 +360,8 @@ The scenarios above are the task set. Real testing should check the ⚠️ risks
 | Wrong-team pages in B and C scenarios | 0 |
 | Single Ease Question (1–7) per task | ≥ 5.5 median |
 | System Usability Scale | ≥ 75 |
-| Screen reader participants complete A-App and B-Ops | Yes, without workarounds |
+| Screen reader participants complete A-App and B-Ops | Yes, without workarounds, in both layouts |
+| Layout chosen after using both, by role | Recorded. No target; this decides the default. |
 
 **Questions to answer**
 
@@ -330,3 +369,5 @@ The scenarios above are the task set. Real testing should check the ⚠️ risks
 2. Do responders trust the "Application or telemetry?" assessment enough to *not* page? What evidence do they look at first?
 3. Is the role-ordered navigation helpful, or confusing for people who do both jobs?
 4. Does the assistant reduce questions to platform engineers, or create new "the AI said…" escalations?
+5. Which layout do people choose after using both? Does it match the suggested starting point (Guided for application teams, Console for DevOps)?
+6. Does the Console's lower interaction count turn into faster, equally accurate decisions, or do newcomers miss things?

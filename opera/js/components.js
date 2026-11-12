@@ -415,9 +415,24 @@
         badge: D.telemetry.incidents.length ? { n: D.telemetry.incidents.length, sr: 'active incidents', tone: 'tel' } : null },
       runbooks: { href: '#/runbooks', icon: 'book', label: 'Handling procedures', match: /^\/runbooks/ },
     };
-    const order = role === 'app'
+    let order = role === 'app'
       ? ['home', 'apps', 'onboard', 'requests', 'alerts', 'health', 'runbooks']
       : ['home', 'alerts', 'health', 'apps', 'runbooks', 'requests', 'onboard'];
+    if (OperA.design() === 'console') {
+      if (role === 'ops') {
+        // In the Console layout the triage console is the home page, so one item covers both.
+        items.home = Object.assign({}, items.alerts, { href: '#/home', icon: 'bell', label: 'Triage', match: /^\/(home|alerts)/ });
+        order = ['home', 'health', 'apps', 'runbooks', 'requests', 'onboard'];
+      } else {
+        items.home.label = 'Workspace';
+        order = ['home', 'onboard', 'requests', 'alerts', 'health', 'apps', 'runbooks'];
+      }
+      // The Console's navigation runs across the top, so it uses shorter labels.
+      Object.assign(items.onboard, { label: 'Onboard' });
+      Object.assign(items.requests, { label: 'Requests' });
+      Object.assign(items.runbooks, { label: 'Procedures' });
+      Object.assign(items.apps, { label: 'Applications' });
+    }
     return order.map((k) => items[k]);
   }
   function renderNav() {
@@ -426,11 +441,22 @@
     nav.innerHTML = String(html`<ul>${navItems().map((it) => html`<li><a href="${it.href}" ${it.match.test(path) ? raw('aria-current="page"') : ''}>
       ${icon(it.icon)}<span class="nav-label">${it.label}</span>
       ${it.badge ? html`<span class="nav-badge nav-badge-${it.badge.tone}">${it.badge.n}<span class="sr-only"> ${it.badge.sr}</span></span>` : ''}</a></li>`)}</ul>
-      <p class="nav-foot">OperA prototype · fictional data<br /><a href="#/about">About and scenarios</a></p>`);
+      <p class="nav-foot"><span class="nav-foot-note">OperA prototype · fictional data</span>
+        <a href="#/choose">Choose layout</a><span aria-hidden="true"> · </span><a href="#/about">About and scenarios</a></p>`);
     const p = reg.persona();
     document.getElementById('user-chip').innerHTML = String(html`<span class="avatar" aria-hidden="true">${p.initials}</span><span class="user-meta"><strong>${p.name}</strong><span>${p.title}</span></span>`);
     document.querySelectorAll('[data-action="set-role"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.role === store.state.role)));
+    document.querySelectorAll('.design-switch [data-action="set-design"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.design === OperA.design())));
   }
+  const LAYOUT_NAME = { guided: 'Guided', console: 'Console' };
+  OperA.actions['set-design'] = (btn) => {
+    const role = btn.dataset.role || store.state.role;
+    store.state.role = role;
+    store.state.design[role] = btn.dataset.design;
+    store.state.chosen = true; store.save();
+    OperA.toast(`${LAYOUT_NAME[btn.dataset.design]} layout is on for ${role === 'app' ? 'application teams' : 'DevOps'}. Switch any time from the top bar.`, 'info');
+    if (btn.dataset.go) OperA.go(btn.dataset.go); else OperA.render();
+  };
   OperA.actions['toggle-nav'] = (btn) => {
     const open = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!open));
@@ -444,8 +470,8 @@
   });
   OperA.actions['set-role'] = (btn) => {
     store.state.role = btn.dataset.role; store.save();
-    OperA.toast(btn.dataset.role === 'app' ? 'Now viewing as Jordan Kim (application team).' : 'Now viewing as Sam Ortiz (DevOps / operations).', 'info');
-    if (OperA.current.path === '/home') OperA.render(); else OperA.refresh();
+    OperA.toast(`${btn.dataset.role === 'app' ? 'Now viewing as Jordan Kim (application team)' : 'Now viewing as Sam Ortiz (DevOps / operations)'}, ${LAYOUT_NAME[OperA.design()]} layout.`, 'info');
+    OperA.render();
   };
 
   /* ---------- prototype controls (clearly separated from the product) ---------- */
@@ -495,6 +521,6 @@
   OperA.ui = {
     icon, sev, checkChip, covChip, freshChip, alertStatus, verdictChip, reqStatus, envTag, timeAgo,
     pageHead, callout, emptyState, errorState, notFound, help, codeBlock, stepper, ownership, escalationLadder,
-    lineChart, mountCharts, incidentBanner, renderNav, renderProto, VERDICT, ALERT_STATUS, REQ_STATUS, COVERAGE,
+    lineChart, mountCharts, incidentBanner, renderNav,
   };
 })();

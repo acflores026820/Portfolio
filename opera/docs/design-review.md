@@ -1,8 +1,8 @@
 # OperA design review
 
-**Prototype v0.1 · November 2026 · All applications, people and data are fictional**
+**Prototype v0.2 · November 2026 · All applications, people and data are fictional**
 
-> **Starting point.** There was no earlier OperA prototype in this repository, so this is the first version, built from the mission brief. Everything below describes what the prototype in `opera/` does and why.
+> **Starting point.** There was no earlier OperA prototype in this repository, so v0.1 was built from the mission brief. **v0.2** enhances it: OperA now comes in **two layouts to choose from** (Guided and Console) for both application teams and DevOps (section 5), and the four findings left open in v0.1 are fixed. Everything below describes what the prototype in `opera/` does and why.
 
 ---
 
@@ -73,13 +73,112 @@ These came out of the review and were applied to every screen.
 | Telemetry health | `#/health` | Both |
 | Handling procedures | `#/runbooks`, `#/runbooks/:id` | DevOps, procedure owners |
 | Search | `#/search?q=` | Both (exact IDs jump straight to the item) |
+| Layout chooser | `#/choose` | Both (shown on the first visit) |
 | About and scenario launcher | `#/about` | Design reviewers |
 
-The side navigation is **ordered by role**. Application teams see Applications → Onboard → Requests first. DevOps sees Alerts → Telemetry health → Applications first. The items and labels stay the same, so switching roles doesn't hide anything.
+The navigation is **ordered by role**. Application teams see Applications → Onboard → Requests first. DevOps sees Alerts → Telemetry health → Applications first. Switching roles doesn't hide anything.
+
+The routes are the same in both layouts. What a route shows depends on the layout the person chose for their role (section 5). In the Console layout the navigation runs across the top with shorter labels, and for DevOps "Home" and "Alerts" are one screen, the triage console.
 
 ---
 
-## 5. Feature reviews
+## 5. Two layouts to choose from
+
+OperA comes in two layouts. Application teams and DevOps each choose their own, and can switch at any time.
+
+| | **Guided** | **Console** |
+|---|---|---|
+| Idea | Step by step. One decision per screen, with the explanation beside it. | Everything on one screen, built for repeat work. |
+| Look | Light and roomy. Navigation down the side. | Dark and compact. Navigation across the top. |
+| Application team home | "Your next actions", then what you're waiting on | **Workspace**: a needs-you strip, a coverage board (every component × environment), and a request pipeline |
+| Onboarding | Four-step wizard | **One page** with a live readiness panel |
+| DevOps home | Triage numbers and a "needs attention" table | The **triage console**, with the most urgent alert already open |
+| Working an alert | Queue page, then a full page per alert | **Three panes**: queue · alert · ownership and escalation. J, K, A and E shortcuts. |
+| Other screens | Application pages, requests, telemetry health, procedures and search are the same screens in both, re-themed. | |
+
+### What the two layouts share
+
+Both layouts are built from the same parts, in code, not by convention:
+
+- the registry, alerts, requests and telemetry data
+- the alert parts: next step, "application or telemetry?" assessment, evidence, handling procedure, approvals, escalation path
+- the validation engine and its fix guidance
+- every dialog: paging, approval requests, linking to an incident, resolving
+- the assistant and its read-only tools
+
+So a layout can't weaken a safeguard. Production changes need a second person in both, and every action lands in the same activity log.
+
+### How choosing works
+
+- The **first visit** opens the chooser (`#/choose`): two cards per role, each with a thumbnail, who it's best for, its trade-off, and a measured interaction count.
+- The choice is stored **per role**, so "Guided for application teams, Console for DevOps" is possible.
+- **Layout** in the top bar switches at any time. The choice is remembered in the browser.
+- The scenario launcher (`#/about`) can start every scenario in either layout.
+
+### F12 · Selectable layouts, reviewed against the eight UX questions
+
+| | |
+|---|---|
+| **Primary user and goal** | Both. "Let me work the way that suits how often I do this." |
+| **Problem** | One layout can't serve a developer onboarding for the first time and an on-shift responder clearing a queue. Explanations that help the first slow the second; density that helps the second overwhelms the first. |
+| **Simplest journey** | Choose once on the first visit. Change with one click in the top bar. |
+| **Removed** | For Console users: page changes between queue and alert, wizard steps, and navigation to find the most urgent alert. For Guided users: nothing is taken away. |
+| **States** | Both layouts have the same success, failure, incomplete-data, empty and unavailable states, because they render the same parts. On narrow screens the Console shows one pane at a time (list, then the alert) instead of three. |
+| **What happened, what next** | The "Next step" box is the first thing in the alert pane and the request page in both layouts. The Console onboarding page replaces the wizard's step indicator with a readiness checklist that says what's still missing. |
+| **Beginner / expert** | Guided suits beginners: one decision at a time, explanations visible. Console suits experts: fewer interactions, context always in view, explanations folded away but one click from reach. |
+| **Stakeholder involvement** | Neutral by design. A layout changes how fast someone reaches an action, not who has to approve it. |
+
+### How each layout serves each role
+
+Design judgement from the simulated walkthroughs. Not user research.
+
+| | App team · Guided | App team · Console | DevOps · Guided | DevOps · Console |
+|---|---|---|---|---|
+| New to the task | ✅ Explanations beside each choice | ⚠️ Terms assumed; help is folded away | ✅ One alert, reasoning laid out | ⚠️ A lot on screen at once |
+| Does it often | ⚠️ Wizard is slow for the tenth component | ✅ Board shows every gap; one page to fix each | ⚠️ Loses the queue while inside an alert | ✅ Queue, alert and owner always visible |
+| Finds what needs them | ✅ Ranked list | ✅ Needs-you strip, plus the whole picture | ✅ "Needs attention" table | ✅ Most urgent alert opens by itself |
+| Error recovery | ✅ Per-step error summary | ✅ One summary for the whole page | ✅ Same dialogs | ✅ Same dialogs |
+| Screen | Works from phone to desktop | Works on phones, best on a wide screen | Works from phone to desktop | Needs about 1100 px for three panes; one pane at a time below that |
+| Accessibility | ✅ | ✅ Same semantics, dark contrast verified | ✅ | ✅ Shortcuts can be turned off |
+
+### Measured interactions (scripted walkthroughs)
+
+One click, typed field, tick or selection is one interaction. Measured by `tests/walkthroughs.js`, which runs every scenario in both layouts.
+
+| Scenario | Guided | Console | Why they differ |
+|---|---|---|---|
+| A-App · Onboard a service to qa | 11 | **8** | One page instead of four steps |
+| A-Ops · Alert with incomplete ownership | 10 | **9** | No separate queue page |
+| B-Ops · Rollback approval and page | 10 | **9** | No separate queue page |
+| B-App · First on-call shift | 10 | 10 | Same parts once the alert is open |
+| C-Ops · "No data" from the pipeline | 5 | **3** | The most urgent alert is already open |
+| C-App · "Are my missing logs my fault?" | 2 | 2 | Same screen |
+| Recovery · Errors and bad identifiers | 6 | 6 | Same handling |
+
+Fewer interactions is not the same as easier. Counts say nothing about whether someone understood what they were looking at.
+
+### Recommendation
+
+**Start application teams on Guided and DevOps on Console, and let anyone switch.**
+
+- Onboarding is occasional work for most developers, and the failure modes (log format, missing attributes) need explaining. Guided explains them in place.
+- Triage is repeat work under time pressure. Console keeps the queue, the alert and the owner in view and removes navigation.
+- An application developer on call, like Jordan in scenario B-App, may prefer Guided for alerts. That's why the choice is per person and per role, not fixed.
+
+This is a design judgement from simulated walkthroughs. It should be tested with real users before it becomes a default (see the plan in `usability-scenarios.md`).
+
+### Console-specific risks
+
+- **Density for newcomers.** Explanations are one click away, but a newcomer has to know to look. Mitigation: Guided is the suggested starting point for application teams.
+- **Single-key shortcuts** can surprise people using speech input. They can be turned off (WCAG 2.1.4), don't fire while typing, and none of them triggers an approval, resolution or incident link.
+- **The queue re-sorts** when an alert is acknowledged (unacknowledged first). The selection follows the alert, but the row moves. Worth watching in real use.
+- **Wide screens.** Three panes need about 1100 px. Below that the Console shows one pane at a time.
+
+---
+
+## 6. Feature reviews
+
+The reviews below describe each feature as the Guided layout presents it. The Console layout shows the same features with the same rules; section 5 covers where its presentation differs.
 
 Each feature is reviewed against the eight UX questions in the brief:
 
@@ -192,7 +291,7 @@ Each feature is reviewed against the eight UX questions in the brief:
 | **Simplest journey** | *Responsible team* card (owner, on-call, support group, chat) plus an *Escalation path* ladder with **Due now** and **In 12 min** markers. The due step has a one-click **Page** button. |
 | **Removed** | Looking up the policy and doing the time maths. Writing the context for a page, which OperA attaches automatically (summary, impact, assessment, evidence, steps done). |
 | **States** | Ownership gap: no on-call registered → falls back to the support group (business hours) or the incident commander, with a warning. Stale registry (>180 days) → "may be out of date". Telemetry routing replaces the app ladder. Acknowledged or paged steps show who and when. |
-| **What happened, what next** | The paging dialog requires a reason and shows the exact context packet that will be sent. |
+| **What happened, what next** | The paging dialog requires a reason and shows the exact context packet that will be sent. The card explains what the tier means ("What does Tier 2 mean?"). A standing line, "Customers affected right now? Don't wait for the timers", pages the incident commander directly, so the rule doesn't rely on memory. |
 | **Beginner / expert** | Beginner: one recommended person, preselected. Expert: any step on the ladder can be chosen. |
 | **Stakeholder involvement** | **Reduces** "what's going on?" follow-ups from the person paged. Registry gaps are reported to the owner in two clicks, so the same gap doesn't cost the next responder. |
 
@@ -203,10 +302,10 @@ Each feature is reviewed against the eight UX questions in the brief:
 | **Primary user and goal** | DevOps and app on-call: "What's the agreed procedure, and what am I allowed to do?" |
 | **Problem** | Runbooks are hard to find, often stale, and risky steps get done without a second pair of eyes. |
 | **Simplest journey** | The linked procedure is embedded in the alert. Steps can be ticked off (logged), each step's links open pre-filtered telemetry, and the risky step opens an **approval request**. |
-| **Removed** | Hunting for the runbook. Re-typing filters into the logs tool, because each "Open logs/traces" link shows the exact pre-scoped query to paste plus sample results. |
+| **Removed** | Hunting for the runbook. Re-typing filters into the logs tool, because each "Open logs/traces" link shows the exact pre-scoped query to paste plus sample results. Opening a dialog to see recent changes: the procedure step that asks for them now shows them inline ("Deploy v2.14.0, 8 minutes before the alert"). A second notification to the same person: when the approver is also next on the escalation path, the approval request and the page go out as one message. |
 | **States** | No procedure → falls back to generic triage (RB-000) or telemetry gap (RB-900), with "Ask the owning team for a procedure". Stale procedure (>6 months) → warning to confirm risky steps. Approval: pending → approved or rejected (with reason). The approval form requires a change record (format-checked with a specific error), a reason, and confirmation of blast radius and rollback plan. You can't approve your own request; an alternate approver is used. |
 | **What happened, what next** | "Nothing changes until X approves." Every action is recorded on the alert timeline. |
-| **Beginner / expert** | Beginner: the *Next* tag on the current step, and decision callouts ("If the error rate is above 2%…"). Expert: can tick steps out of order. |
+| **Beginner / expert** | Beginner: the *Next* tag on the current step, decision callouts ("If the error rate is above 2%…"), and "What's a change record, and how do I get one?" in the approval dialog. Expert: can tick steps out of order. |
 | **Stakeholder involvement** | **Keeps** one approver for production changes on purpose (a safeguard). **Removes** the approver's need to ask for context, because the request carries it. |
 
 ### F10 · Telemetry health
@@ -232,7 +331,7 @@ Each feature is reviewed against the eight UX questions in the brief:
 
 ---
 
-## 6. AI and MCP integration design
+## 7. AI and MCP integration design
 
 The assistant in the prototype is scripted, but it follows the integration contract a real implementation should follow.
 
@@ -255,7 +354,7 @@ The assistant in the prototype is scripted, but it follows the integration contr
 
 ---
 
-## 7. Operational safeguards preserved
+## 8. Operational safeguards preserved
 
 | Safeguard | Where |
 |---|---|
@@ -271,7 +370,7 @@ The assistant in the prototype is scripted, but it follows the integration contr
 
 ---
 
-## 8. Platform and telemetry assumptions
+## 9. Platform and telemetry assumptions
 
 - **OpenTelemetry** is the standard. Required resource attributes are `service.name`, `deployment.environment`, `camr.id` and `app.component`. Data without `camr.id` is shown as *Partial* because it can't be linked to an owner.
 - **Collectors run in regional pools.** The registry records each application's region and pool, which is how incidents are mapped to applications.
@@ -280,28 +379,35 @@ The assistant in the prototype is scripted, but it follows the integration contr
 
 ---
 
-## 9. Accessibility
+## 10. Accessibility
 
 Target: **WCAG 2.2 AA**.
 
-**Automated (axe-core 4.14).** 0 violations across 54 screens and states: every route in both roles, empty and unavailable states, every wizard step including errors and validation results, the help, approval, escalation and explorer dialogs, the assistant, and the prototype panel. The first run found 4 issues, all fixed:
+**Automated (axe-core 4.14).** 0 violations in **both layouts**:
 
-- logo link name didn't match its visible text
-- prototype notice outside a landmark
-- skipped heading level in fix guidance
-- scrollable context packet not keyboard-reachable
+- 114 screens and states at desktop width: every route in both roles and both layouts, empty and unavailable states, onboarding with errors and validation results, the help, approval, escalation, explorer and shortcuts dialogs, the assistant, the prototype panel.
+- 64 more at phone (320 px) and tablet (800 px) widths.
 
-**Scripted keyboard and layout checks.** All pass:
+The Console's dark theme was designed for contrast, not flipped from the light one: text is at least 4.5:1 and control boundaries at least 3:1 on the dark surfaces, and filled buttons use separate fill colours so white text stays readable.
+
+Issues the audits found, all fixed:
+
+- v0.1: logo link name didn't match its visible text; prototype notice outside a landmark; skipped heading level in fix guidance; scrollable context packet not keyboard-reachable.
+- v0.2 (found by auditing narrow widths, and present in both layouts): the assistant button lost its accessible name when its label was hidden; the user chip had a label without a role; a few standalone links were under 24 px tall; a wide table couldn't be scrolled by keyboard on a phone-width screen.
+
+**Scripted keyboard and layout checks.** 17 checks per layout, all pass in both:
 
 - Skip link is the first Tab stop and moves focus to main without changing the route.
-- On route changes, focus moves to the new page's heading so screen readers announce it.
-- Visible 3 px focus ring on every Tab stop.
+- On route changes, focus moves to the new page's heading so screen readers announce it. In the Console that heading is the selected alert's title.
+- Visible focus ring on every Tab stop.
 - Dialogs: open with Enter, keep focus inside, close with Escape, and return focus to the trigger (or its re-rendered twin).
-- Invalid submissions focus the first invalid field (`aria-invalid`, linked error text). The wizard focuses a linked error summary.
-- Environment tabs follow the WAI-ARIA tabs pattern (arrow keys, Home, End).
-- Charts can be read by keyboard (arrow keys move the crosshair) and have a text summary plus a "Show data as a table" alternative.
+- Invalid submissions focus the first invalid field (`aria-invalid`, linked error text). Onboarding focuses a linked error summary.
+- Tabs follow the WAI-ARIA tabs pattern (arrow keys, Home, End).
+- Charts can be read by keyboard and have a text summary plus a "Show data as a table" alternative.
+- The layout switch works by keyboard and reports its state (`aria-pressed`).
+- Console single-key shortcuts don't fire while typing in a field or reading a chart, and can be turned off (WCAG 2.1.4).
 - Standalone targets are at least 24 × 24 px (WCAG 2.2 2.5.8).
-- No horizontal page scrolling at 320 px wide (1.4.10 Reflow). Wide tables scroll inside their own container.
+- No horizontal page scrolling at 320 px or 800 px wide (1.4.10 Reflow). Wide tables scroll inside their own box, which becomes focusable and labelled when it scrolls.
 
 **Design-level.** Status is always icon plus text. Severity, environment and verdict chips are readable in greyscale. `prefers-reduced-motion` and `forced-colors` are respected. Live regions announce validation progress, results and toasts. Copy is plain language (short sentences, "you", no jargon without a definition).
 
@@ -309,9 +415,11 @@ Target: **WCAG 2.2 AA**.
 
 ---
 
-## 10. Known limitations and open questions
+## 11. Known limitations and open questions
 
 - **Fictional data, no backend.** All state lives in `localStorage`. Times are generated relative to page load.
+- **Two layouts cost more to maintain** than one. The shared parts keep that cost low today, but a team should decide after testing whether both earn their place, or whether one layout with a density setting would do.
+- **The Console covers the main surfaces.** Triage, workspace and onboarding are purpose-built. The other screens are the Guided screens in the Console theme.
 - **The assistant is scripted.** A real model would need evaluation for answer accuracy, citation faithfulness and refusal behaviour before release.
 - **Assessment rules are deliberately simple.** Real pipelines need per-signal data-loss metrics, collector-to-application mapping that's kept current, and a calibrated confidence model.
 - **Registry quality is the biggest dependency.** OperA makes gaps visible and reportable, but can't fix them. Open question: should repeated gaps (e.g. no on-call for 30 days) escalate to the owning team's manager automatically?
@@ -320,9 +428,9 @@ Target: **WCAG 2.2 AA**.
 
 ---
 
-## 11. Suggested next steps
+## 12. Suggested next steps
 
-1. Run the usability study in `usability-scenarios.md` with real participants (5–6 per role), including screen reader and keyboard-only users.
+1. Run the usability study in `usability-scenarios.md` with real participants (5–6 per role), including screen reader and keyboard-only users. Have each participant use both layouts, in alternating order, and record which they choose afterwards.
 2. Instrument the real product with the success metrics below and set baselines before launch.
 3. Pilot with two application teams and one operations shift, then compare pages-to-wrong-team and onboarding tickets before and after.
 

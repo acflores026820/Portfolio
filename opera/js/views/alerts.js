@@ -8,7 +8,9 @@
   /* ---------------- queue ---------------- */
   OperA.views.alerts = {
     title: () => 'Alerts',
+    mount(root, params, q) { return OperA.design() === 'console' ? OperA.views.triage.mount(root, [], q) : false; },
     render(_, q) {
+      if (OperA.design() === 'console') return OperA.views.triage.render([], q);
       const role = store.state.role;
       const ds = store.state.proto.dataSource;
       const scope = q.scope || (role === 'app' ? 'mine' : 'all');
@@ -77,24 +79,57 @@
   };
   OperA.route(/^\/alerts$/, OperA.views.alerts);
 
-  /* ---------------- detail ---------------- */
+  /* ---------------- detail ----------------
+   * The alert page is built from parts so both layouts (Guided page, Console
+   * triage panes) show exactly the same content and follow the same rules.
+   * ------------------------------------------------------------------ */
   const EV_ICON = { good: 'check', bad: 'x', warn: 'alert', info: 'info' };
   const evidenceList = (items) => html`<ul class="evidence">${items.map((e) => html`<li class="ev-${e.type}"><span class="ev-icon">${ui.icon(EV_ICON[e.type])}<span class="sr-only">${{ good: 'Healthy:', bad: 'Problem:', warn: 'Caution:', info: 'Note:' }[e.type]}</span></span><span>${e.text}${e.href ? html` <a href="${e.href}">Details</a>` : ''}</span></li>`)}</ul>`;
 
-  function runbookCard(a, as) {
+  /** Everything the parts need about one alert, computed once. */
+  function model(id) {
+    const a = alerts.get(id);
+    if (!a) return null;
+    const app = reg.app(a.camrId);
+    const as = tel.assess(a);
+    const esc = alerts.escalation(a, as);
+    return { a, app, as, esc, n: alerts.nextStep(a) };
+  }
+
+  function actionBtn(m, act, label, primary) {
+    const { a, esc } = m;
+    const cls = `btn ${primary ? 'btn-primary' : ''}`;
+    if (act === 'ack') return html`<button type="button" class="${cls}" data-action="ack" data-alert="${a.id}">${ui.icon('user')}${label || 'Acknowledge'}</button>`;
+    if (act === 'escalate') return html`<button type="button" class="${cls}" data-action="escalate" data-alert="${a.id}" ${esc.due ? raw(`data-target="${esc.due.key}"`) : ''}>${ui.icon('bell')}${label || 'Escalate'}</button>`;
+    if (act === 'link-incident') return html`<button type="button" class="${cls}" data-action="link-incident" data-alert="${a.id}">${ui.icon('link')}${label}</button>`;
+    if (act === 'resolve') return html`<button type="button" class="${cls}" data-action="resolve" data-alert="${a.id}">${ui.icon('check')}${label || 'Resolve'}</button>`;
+    return '';
+  }
+
+  /** Recent changes shown where the procedure asks for them, so nobody has to open a dialog to see one line. */
+  function changesInline(a) {
+    if (!a.changes.length) return html`<p class="rb-found">${ui.icon('check')} Checked for you: no deploys or config changes in the last 24 hours.</p>`;
+    return html`<ul class="rb-found plain">${a.changes.map((c) => {
+      const before = Math.round((a.startedAt - c.at) / 60000);
+      return html`<li>${ui.icon('commit')} <strong>${c.text}</strong>, ${fmt.rel(c.at)} (${before} minutes before the alert). ${c.by}.${c.correlated ? html` <span class="chip chip-warn">${ui.icon('alert')}Just before the alert</span>` : ''}</li>`;
+    })}</ul>`;
+  }
+
+  function runbookCard(m) {
+    const { a, as, app } = m;
     let rb = reg.runbook(a.runbook);
     const fallback = !rb;
     if (!rb) rb = reg.runbook(as.verdict === 'telemetry' ? 'RB-900' : 'RB-000');
-    const app = reg.app(a.camrId);
     const stale = reg.runbookStale(rb);
     const nextIdx = rb.steps.findIndex((_, i) => !a.stepsDone.includes(i));
     const linkBtn = (kind) => {
-      const label = { metrics: 'Open metrics', logs: 'Open logs', traces: 'Open traces', changes: 'Recent changes', health: 'Telemetry health' }[kind];
+      const label = { metrics: 'Open metrics', logs: 'Open logs', traces: 'Open traces', health: 'Telemetry health' }[kind];
+      if (kind === 'changes') return '';
       if (kind === 'health') return html`<a class="btn btn-sm" href="#/health">${ui.icon('activity')}${label}</a>`;
-      return html`<button type="button" class="btn btn-sm" data-action="explore" data-alert="${a.id}" data-signal="${kind}">${ui.icon(kind === 'changes' ? 'commit' : 'search')}${label}</button>`;
+      return html`<button type="button" class="btn btn-sm" data-action="explore" data-alert="${a.id}" data-signal="${kind}">${ui.icon('search')}${label}</button>`;
     };
     const actBtn = (act) => {
-      if (act.type === 'remediation') return alerts.get(a.id).approvals.some((p) => p.state === 'pending') ? html`<span class="chip chip-info">${ui.icon('shield')}Approval requested</span>`
+      if (act.type === 'remediation') return a.approvals.some((p) => p.state === 'pending') ? html`<span class="chip chip-info">${ui.icon('shield')}Approval requested</span>`
         : html`<button type="button" class="btn btn-sm btn-primary" data-action="remediate" data-alert="${a.id}">${ui.icon('shield')}${act.label}</button>`;
       if (act.type === 'escalate') return html`<button type="button" class="btn btn-sm" data-action="escalate" data-alert="${a.id}">${ui.icon('bell')}${act.label}</button>`;
       if (act.type === 'link-incident') return as.incident ? html`<button type="button" class="btn btn-sm" data-action="link-incident" data-alert="${a.id}" ${a.linkedIncident ? raw('disabled') : ''}>${ui.icon('link')}${a.linkedIncident ? `Linked to ${a.linkedIncident}` : `Link to ${as.incident.id}`}</button>` : '';
@@ -109,121 +144,122 @@
       <p class="small">${rb.summary}</p>
       <ol class="rb-steps">${rb.steps.map((s, i) => {
         const done = a.stepsDone.includes(i);
+        const links = (s.links || []);
+        const buttons = links.map(linkBtn).filter(Boolean);
         return html`<li class="rb-step ${done ? 'is-done' : ''} ${i === nextIdx && a.status !== 'resolved' ? 'is-next' : ''}">
           <input type="checkbox" class="rb-check" id="rb-${a.id}-${i}" data-change="rb-step" data-alert="${a.id}" data-idx="${i}" ${done ? raw('checked') : ''} aria-describedby="rb-${a.id}-${i}-body" />
           <div><label for="rb-${a.id}-${i}" class="rb-title"><span class="rb-num">${i + 1}.</span>${s.title}</label>${i === nextIdx && a.status !== 'resolved' ? html`<span class="next-tag">Next</span>` : ''}
             <p class="rb-body" id="rb-${a.id}-${i}-body">${s.body}</p>
+            ${links.includes('changes') ? changesInline(a) : ''}
             ${s.decision ? html`<p class="rb-decision"><strong>Decision:</strong> ${s.decision}</p>` : ''}
-            ${(s.links || s.action) ? html`<div class="rb-actions">${(s.links || []).map(linkBtn)}${s.action ? actBtn(s.action) : ''}</div>` : ''}</div></li>`;
+            ${(buttons.length || s.action) ? html`<div class="rb-actions">${buttons}${s.action ? actBtn(s.action) : ''}</div>` : ''}</div></li>`;
       })}</ol></section>`;
   }
 
+  const parts = {
+    eyebrow: ({ a }) => html`${ui.sev(a.severity)} ${a.id} · ${ui.envTag(a.env)} · ${ui.alertStatus(a.status)}${a.assignee ? html` <span class="muted">· ${a.assignee}</span>` : ''}`,
+    lead: ({ a, app }) => html`${app.name} <span class="mono small">${app.camrId}</span> · <span class="mono">${a.service}/${a.component}</span> · started ${ui.timeAgo(a.startedAt)} (${fmt.clock(a.startedAt)})`,
+    nextStep: (m) => html`<div class="next-step tone-${m.n.tone}" role="region" aria-label="Next step">
+        <div class="next-step-label">Next step</div>
+        <div class="next-step-text">${m.n.text}</div>
+        ${m.n.action ? actionBtn(m, m.n.action, m.n.label, true) : ''}
+      </div>`,
+    quickActions: (m) => (m.a.status !== 'resolved' ? html`<div class="btn-row quick-actions">
+        ${m.a.status === 'new' && m.n.action !== 'ack' ? actionBtn(m, 'ack') : ''}
+        ${m.n.action !== 'escalate' ? actionBtn(m, 'escalate', 'Escalate or page someone') : ''}
+        ${m.n.action !== 'resolve' ? actionBtn(m, 'resolve') : ''}
+        <button type="button" class="btn btn-ghost" data-action="open-assistant" data-prompt="summary">${ui.icon('sparkle')}Ask OperA to summarize</button>
+      </div>` : ''),
+    whats: ({ a }) => html`<section class="card" aria-labelledby="h-what">
+        <h2 class="card-title" id="h-what">${ui.icon('info')}What’s happening</h2>
+        <p><strong>${a.summary}</strong></p>
+        <p class="small"><strong>Impact:</strong> ${a.impact}</p>
+        ${ui.lineChart(a)}
+      </section>`,
+    assessment: ({ a, as, app }) => {
+      const gaps = as.evidence.filter((e) => e.gap);
+      return html`<section class="card" aria-labelledby="h-src">
+        <h2 class="card-title" id="h-src">${ui.icon('activity')}Application or telemetry?</h2>
+        <div class="verdict verdict-${as.verdict}">
+          <div class="verdict-head">${ui.verdictChip(as.verdict)}<span class="verdict-title">${as.headline}</span></div>
+          <p class="small">${as.guidance}</p>
+          <p class="small muted">Confidence: ${as.confidence}. Based on the evidence below.</p>
+        </div>
+        <div class="signal-grid">${D.signals.map((s) => html`<div class="signal-cell"><div class="sig-name">${fmt.cap(s)}${s === a.signal ? html` <span class="muted small">(alert source)</span>` : ''}</div>${ui.freshChip(as.freshness[s])}<div class="sig-detail">${as.freshness[s].detail}</div></div>`)}</div>
+        <h3 style="margin-top:16px">Evidence</h3>
+        ${evidenceList(as.evidence)}
+        ${gaps.length ? html`<p class="small" style="margin-top:12px">${store.state.role === 'app'
+          ? html`<a href="#/onboard?app=${app.camrId}&service=${a.service}&component=${a.component}&env=${a.env}">Set up ${gaps.map((g) => g.gap).join(' and ')} for this component</a> so the next investigation has more to go on.`
+          : html`<button type="button" class="link-btn" data-action="flag-gap" data-alert="${a.id}">Ask ${app.owningTeam} to set up ${gaps.map((g) => g.gap).join(' and ')}</button>`}</p>` : ''}
+      </section>`;
+    },
+    runbook: runbookCard,
+    approvals: ({ a }) => (a.approvals.length ? html`<section class="card" aria-labelledby="h-appr"><h2 class="card-title" id="h-appr">${ui.icon('shield')}Approvals</h2>
+        <ul class="plain">${a.approvals.map((p) => html`<li style="padding:6px 0">
+          ${p.state === 'pending' ? html`<span class="chip chip-info">${ui.icon('clock')}Waiting for ${p.approver}</span>` : p.state === 'approved' ? html`<span class="chip chip-success">${ui.icon('check')}Approved by ${p.approver}</span>` : html`<span class="chip chip-danger">${ui.icon('x')}Rejected by ${p.approver}</span>`}
+          <strong>${p.title}</strong> <span class="muted small">· ${p.change} · requested ${fmt.rel(p.at)} by ${p.by}${p.paged ? ' · sent with the page' : ''}</span>
+          ${p.reason ? html`<div class="small">“${p.reason}”</div>` : ''}
+          ${p.state === 'pending' ? html`<div class="proto-inline">Prototype: simulate ${p.approver}’s decision <button type="button" class="btn btn-sm" data-action="approval-sim" data-alert="${a.id}" data-id="${p.id}" data-to="approved">Approve</button><button type="button" class="btn btn-sm" data-action="approval-sim" data-alert="${a.id}" data-id="${p.id}" data-to="rejected">Reject</button></div>` : ''}
+        </li>`)}</ul></section>` : ''),
+    activity: ({ a }) => html`<section class="card" aria-labelledby="h-activity">
+        <h2 class="card-title" id="h-activity">${ui.icon('clock')}Activity</h2>
+        <form data-form="alert-note" data-alert="${a.id}" class="field" novalidate>
+          <label for="note-${a.id}">Add a note for the next responder</label>
+          <textarea id="note-${a.id}" name="note" rows="2" placeholder="What you checked and what you found"></textarea>
+          <p class="error-msg" data-error-for="note" hidden></p>
+          <button type="submit" class="btn btn-sm" style="margin-top:8px">Add note</button>
+        </form>
+        ${a.timeline.length ? html`<ol class="timeline">${a.timeline.map((t) => html`<li><div><strong>${t.who}</strong> · ${t.text}</div><div class="tl-meta">${ui.timeAgo(t.at)}</div></li>`)}</ol>` : html`<p class="muted small">No activity yet.</p>`}
+      </section>`,
+    ownership: ({ app }) => ui.ownership(app, { title: 'Responsible team' }),
+    escalation: ({ a, as, esc, app }) => {
+      const icStep = esc.steps.find((s) => s.key === 'ic');
+      return html`<section class="card" aria-labelledby="h-esc">
+        <h2 class="card-title" id="h-esc">${ui.icon('bell')}Escalation path</h2>
+        <p class="small muted">${as.verdict === 'telemetry' ? 'Routed to the Telemetry Platform team because this is a telemetry problem.' : html`Tier ${app.tier} policy. Alert age: ${fmt.dur(esc.age)}. ${ui.help('tier', `What does Tier ${app.tier} mean?`)}`}</p>
+        ${a.holdPaging ? ui.callout('tel', 'Application paging is on hold', html`<p>${app.owningTeam} won’t be paged for this alert while ${a.linkedIncident} is open. It reopens automatically if the alert still fires 15 minutes after the incident is resolved.</p>`) : ''}
+        ${ui.escalationLadder(esc, a.status === 'resolved' ? null : a)}
+        ${icStep && icStep.state !== 'done' && a.status !== 'resolved' && as.verdict !== 'telemetry' ? html`<p class="small ic-rule"><strong>Customers affected right now?</strong> Don’t wait for the timers.
+          <button type="button" class="link-btn" data-action="escalate" data-alert="${a.id}" data-target="ic">Page the incident commander now</button></p>` : ''}
+      </section>`;
+    },
+    investigate: ({ a, as, app }) => html`<section class="card" aria-labelledby="h-inv">
+        <h2 class="card-title" id="h-inv">${ui.icon('search')}Investigate</h2>
+        <p class="small muted">Already filtered to ${a.service}/${a.component} in ${a.env}, around the alert time.</p>
+        <ul class="plain">${D.signals.map((s) => html`<li style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0">
+          <button type="button" class="link-btn" data-action="explore" data-alert="${a.id}" data-signal="${s}">${fmt.cap(s)}</button>${ui.freshChip(as.freshness[s])}</li>`)}
+          <li style="padding:4px 0"><button type="button" class="link-btn" data-action="explore" data-alert="${a.id}" data-signal="changes">Recent changes</button> <span class="muted small">(${a.changes.length || 'none'} in 24 h)</span></li>
+          ${app.dashboards.map((d) => html`<li style="padding:4px 0"><button type="button" class="link-btn" data-action="open-external" data-what="${d}">${d}</button> ${ui.icon('external')}</li>`)}</ul>
+      </section>`,
+    related: ({ a, as }) => {
+      const others = alerts.open().filter((x) => x.camrId === a.camrId && x.id !== a.id);
+      return as.incident || others.length ? html`<section class="card" aria-labelledby="h-rel"><h2 class="card-title" id="h-rel">${ui.icon('link')}Related</h2><ul class="plain">
+        ${as.incident ? html`<li><a href="#/health">${as.incident.id}</a> · ${as.incident.title}</li>` : ''}
+        ${others.map((o) => html`<li><a href="#/alerts/${o.id}">${o.id}</a> · ${o.title}</li>`)}</ul></section>` : '';
+    },
+    /** Main column and side column, in reading order. Both layouts use these. */
+    main: (m) => html`${parts.whats(m)}${parts.assessment(m)}${parts.runbook(m)}${parts.approvals(m)}${parts.activity(m)}`,
+    side: (m) => html`${parts.ownership(m)}${parts.escalation(m)}${parts.investigate(m)}${parts.related(m)}`,
+  };
+  OperA.alertParts = { parts, model };
+
   OperA.views.alertDetail = {
     title: ([id]) => (alerts.get(id) ? `${id} · ${alerts.get(id).title}` : 'Alert not found'),
-    render([id]) {
-      const a = alerts.get(id);
-      if (!a) return html`${ui.pageHead({ title: 'Alert not found', lead: `There’s no alert ${id}. It may have been closed and archived.`, crumbs: [ { href: '#/alerts', label: 'Alerts' }, { label: id } ] })}<a class="btn" href="#/alerts">All alerts</a>`;
-      const app = reg.app(a.camrId);
-      const as = tel.assess(a);
-      const esc = alerts.escalation(a, as);
-      const n = alerts.nextStep(a);
-      const others = alerts.open().filter((x) => x.camrId === a.camrId && x.id !== a.id);
-      const gaps = as.evidence.filter((e) => e.gap);
-      const role = store.state.role;
-      const actionBtn = (act, label, primary) => {
-        if (act === 'ack') return html`<button type="button" class="btn ${primary ? 'btn-primary' : ''}" data-action="ack" data-alert="${a.id}">${ui.icon('user')}${label || 'Acknowledge'}</button>`;
-        if (act === 'escalate') return html`<button type="button" class="btn ${primary ? 'btn-primary' : ''}" data-action="escalate" data-alert="${a.id}" ${esc.due ? raw(`data-target="${esc.due.key}"`) : ''}>${ui.icon('bell')}${label || 'Escalate'}</button>`;
-        if (act === 'link-incident') return html`<button type="button" class="btn ${primary ? 'btn-primary' : ''}" data-action="link-incident" data-alert="${a.id}">${ui.icon('link')}${label}</button>`;
-        if (act === 'resolve') return html`<button type="button" class="btn ${primary ? 'btn-primary' : ''}" data-action="resolve" data-alert="${a.id}">${ui.icon('check')}${label || 'Resolve'}</button>`;
-        return '';
-      };
-      const pending = a.approvals.filter((p) => p.state === 'pending');
+    render([id], q) {
+      if (OperA.design() === 'console') return OperA.views.triage.render([id], q);
+      const m = model(id);
+      if (!m) return html`${ui.pageHead({ title: 'Alert not found', lead: `There’s no alert ${id}. It may have been closed and archived.`, crumbs: [ { href: '#/alerts', label: 'Alerts' }, { label: id } ] })}<a class="btn" href="#/alerts">All alerts</a>`;
       return html`
-        ${ui.pageHead({ crumbs: [ { href: '#/alerts', label: 'Alerts' }, { label: a.id } ],
-          eyebrow: html`${ui.sev(a.severity)} ${a.id} · ${ui.envTag(a.env)} · ${ui.alertStatus(a.status)}${a.assignee ? html` <span class="muted">· ${a.assignee}</span>` : ''}`,
-          title: a.title, lead: html`${app.name} <span class="mono small">${app.camrId}</span> · <span class="mono">${a.service}/${a.component}</span> · started ${ui.timeAgo(a.startedAt)} (${fmt.clock(a.startedAt)})` })}
-
-        <div class="next-step tone-${n.tone === 'warn' ? 'warn' : n.tone}" role="region" aria-label="Next step">
-          <div class="next-step-label">Next step</div>
-          <div class="next-step-text">${n.text}</div>
-          ${n.action ? actionBtn(n.action, n.label, true) : ''}
-        </div>
-        ${a.status !== 'resolved' ? html`<div class="btn-row" style="margin:-6px 0 18px">
-          ${a.status === 'new' && n.action !== 'ack' ? actionBtn('ack') : ''}
-          ${n.action !== 'escalate' ? actionBtn('escalate', 'Escalate or page someone') : ''}
-          ${n.action !== 'resolve' ? actionBtn('resolve') : ''}
-          <button type="button" class="btn btn-ghost" data-action="open-assistant" data-prompt="summary">${ui.icon('sparkle')}Ask OperA to summarize</button>
-        </div>` : ''}
-
-        <div class="split">
-          <div>
-            <section class="card" aria-labelledby="h-what">
-              <h2 class="card-title" id="h-what">${ui.icon('info')}What’s happening</h2>
-              <p><strong>${a.summary}</strong></p>
-              <p class="small"><strong>Impact:</strong> ${a.impact}</p>
-              ${ui.lineChart(a)}
-            </section>
-
-            <section class="card" aria-labelledby="h-src">
-              <h2 class="card-title" id="h-src">${ui.icon('activity')}Application or telemetry?</h2>
-              <div class="verdict verdict-${as.verdict}">
-                <div class="verdict-head">${ui.verdictChip(as.verdict)}<span class="verdict-title">${as.headline}</span></div>
-                <p class="small">${as.guidance}</p>
-                <p class="small muted">Confidence: ${as.confidence}. Based on the evidence below.</p>
-              </div>
-              <div class="signal-grid">${D.signals.map((s) => html`<div class="signal-cell"><div class="sig-name">${fmt.cap(s)}${s === a.signal ? html` <span class="muted small">(alert source)</span>` : ''}</div>${ui.freshChip(as.freshness[s])}<div class="sig-detail">${as.freshness[s].detail}</div></div>`)}</div>
-              <h3 style="margin-top:16px">Evidence</h3>
-              ${evidenceList(as.evidence)}
-              ${gaps.length ? html`<p class="small" style="margin-top:12px">${role === 'app'
-                ? html`<a href="#/onboard?app=${app.camrId}&service=${a.service}&component=${a.component}&env=${a.env}">Set up ${gaps.map((g) => g.gap).join(' and ')} for this component</a> so the next investigation has more to go on.`
-                : html`<button type="button" class="link-btn" data-action="flag-gap" data-alert="${a.id}">Ask ${app.owningTeam} to set up ${gaps.map((g) => g.gap).join(' and ')}</button>`}</p>` : ''}
-            </section>
-
-            ${runbookCard(a, as)}
-
-            ${a.approvals.length ? html`<section class="card" aria-labelledby="h-appr"><h2 class="card-title" id="h-appr">${ui.icon('shield')}Approvals</h2>
-              <ul class="plain">${a.approvals.map((p) => html`<li style="padding:6px 0">
-                ${p.state === 'pending' ? html`<span class="chip chip-info">${ui.icon('clock')}Waiting for ${p.approver}</span>` : p.state === 'approved' ? html`<span class="chip chip-success">${ui.icon('check')}Approved by ${p.approver}</span>` : html`<span class="chip chip-danger">${ui.icon('x')}Rejected by ${p.approver}</span>`}
-                <strong>${p.title}</strong> <span class="muted small">· ${p.change} · requested ${fmt.rel(p.at)} by ${p.by}</span>
-                ${p.reason ? html`<div class="small">“${p.reason}”</div>` : ''}
-                ${p.state === 'pending' ? html`<div class="proto-inline">Prototype: simulate ${p.approver}’s decision <button type="button" class="btn btn-sm" data-action="approval-sim" data-alert="${a.id}" data-id="${p.id}" data-to="approved">Approve</button><button type="button" class="btn btn-sm" data-action="approval-sim" data-alert="${a.id}" data-id="${p.id}" data-to="rejected">Reject</button></div>` : ''}
-              </li>`)}</ul></section>` : ''}
-
-            <section class="card" aria-labelledby="h-activity">
-              <h2 class="card-title" id="h-activity">${ui.icon('clock')}Activity</h2>
-              <form data-form="alert-note" data-alert="${a.id}" class="field" novalidate>
-                <label for="note-${a.id}">Add a note for the next responder</label>
-                <textarea id="note-${a.id}" name="note" rows="2" placeholder="What you checked and what you found"></textarea>
-                <p class="error-msg" data-error-for="note" hidden></p>
-                <button type="submit" class="btn btn-sm" style="margin-top:8px">Add note</button>
-              </form>
-              ${a.timeline.length ? html`<ol class="timeline">${a.timeline.map((t) => html`<li><div><strong>${t.who}</strong> · ${t.text}</div><div class="tl-meta">${ui.timeAgo(t.at)}</div></li>`)}</ol>` : html`<p class="muted small">No activity yet.</p>`}
-            </section>
-          </div>
-
-          <div class="stack">
-            ${ui.ownership(app, { title: 'Responsible team' })}
-            <section class="card" aria-labelledby="h-esc">
-              <h2 class="card-title" id="h-esc">${ui.icon('bell')}Escalation path</h2>
-              <p class="small muted">${as.verdict === 'telemetry' ? 'Routed to the Telemetry Platform team because this is a telemetry problem.' : `Tier ${app.tier} policy. Alert age: ${fmt.dur(esc.age)}.`}</p>
-              ${a.holdPaging ? ui.callout('tel', 'Application paging is on hold', html`<p>${app.owningTeam} won’t be paged for this alert while ${a.linkedIncident} is open. It reopens automatically if the alert still fires 15 minutes after the incident is resolved.</p>`) : ''}
-              ${ui.escalationLadder(esc, a.status === 'resolved' ? null : a)}
-            </section>
-            <section class="card" aria-labelledby="h-inv">
-              <h2 class="card-title" id="h-inv">${ui.icon('search')}Investigate</h2>
-              <p class="small muted">Already filtered to ${a.service}/${a.component} in ${a.env}, around the alert time.</p>
-              <ul class="plain">${D.signals.map((s) => html`<li style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0">
-                <button type="button" class="link-btn" data-action="explore" data-alert="${a.id}" data-signal="${s}">${fmt.cap(s)}</button>${ui.freshChip(as.freshness[s])}</li>`)}
-                <li style="padding:4px 0"><button type="button" class="link-btn" data-action="explore" data-alert="${a.id}" data-signal="changes">Recent changes</button> <span class="muted small">(${a.changes.length || 'none'} in 24 h)</span></li>
-                ${app.dashboards.map((d) => html`<li style="padding:4px 0"><button type="button" class="link-btn" data-action="open-external" data-what="${d}">${d}</button> ${ui.icon('external')}</li>`)}</ul>
-            </section>
-            ${as.incident || others.length ? html`<section class="card" aria-labelledby="h-rel"><h2 class="card-title" id="h-rel">${ui.icon('link')}Related</h2><ul class="plain">
-              ${as.incident ? html`<li><a href="#/health">${as.incident.id}</a> · ${as.incident.title}</li>` : ''}
-              ${others.map((o) => html`<li><a href="#/alerts/${o.id}">${o.id}</a> · ${o.title}</li>`)}</ul></section>` : ''}
-          </div>
-        </div>`;
+        ${ui.pageHead({ crumbs: [ { href: '#/alerts', label: 'Alerts' }, { label: m.a.id } ], eyebrow: parts.eyebrow(m), title: m.a.title, lead: parts.lead(m) })}
+        ${parts.nextStep(m)}
+        ${parts.quickActions(m)}
+        <div class="split"><div>${parts.main(m)}</div><div class="stack">${parts.side(m)}</div></div>`;
     },
-    mount(root) { ui.mountCharts(root); },
+    mount(root, params, q) {
+      if (OperA.design() === 'console') return OperA.views.triage.mount(root, params, q);
+      ui.mountCharts(root);
+      return false;
+    },
   };
   OperA.route(/^\/alerts\/(ALR-\d+)$/, OperA.views.alertDetail);
 
@@ -318,7 +354,6 @@
       `Open in OperA: #/alerts/${a.id}`,
     ].join('\n');
   }
-  OperA.contextPacket = contextPacket;
   OperA.actions.escalate = (el) => {
     const a = alerts.get(el.dataset.alert); const as = tel.assess(a); const esc = alerts.escalation(a, as);
     const choices = esc.steps.filter((s) => s.key !== 'noc' && s.state !== 'done');
@@ -327,7 +362,7 @@
     OperA.modal.open({
       title: `Escalate ${a.id}`, form: 'escalate', submitLabel: 'Send page', wide: true, data: { alert: a.id },
       body: html`<fieldset class="field"><legend>Who should be paged?</legend><div class="choice-list">${choices.map((s, i) => html`<label class="choice"><input type="radio" name="target" value="${s.key}" id="esc-t-${i}" ${s.key === pre ? raw('checked') : ''} />
-          <span class="choice-body"><span class="choice-title">${s.who}${s.state === 'due' ? html`<span class="chip chip-danger">${ui.icon('bell')}Due now</span>` : ''}${s.gap ? html`<span class="chip chip-warn">${ui.icon('alert')}Business hours only</span>` : ''}</span><span class="choice-desc">${s.role}</span></span></label>`)}</div>
+          <span class="choice-body"><span class="choice-title">${s.who}${s.state === 'due' ? html`<span class="chip chip-danger">${ui.icon('bell')}Due now</span>` : ''}${s.gap ? html`<span class="chip chip-warn">${ui.icon('alert')}Business hours only</span>` : ''}</span><span class="choice-desc">${s.role}${s.key === 'ic' ? ' · Choose this now if customers are affected, whatever the timer says.' : ''}</span></span></label>`)}</div>
           <p class="error-msg" data-error-for="target" hidden></p></fieldset>
         <div class="field"><label for="esc-reason">Why are you escalating?</label><p class="hint" id="esc-reason-hint">One or two sentences. This goes at the top of the page.</p>
           <textarea id="esc-reason" name="reason" rows="2" aria-describedby="esc-reason-hint"></textarea><p class="error-msg" data-error-for="reason" hidden></p></div>
@@ -377,13 +412,17 @@
     if (!r) { OperA.toast('No pre-approved remediation exists for this alert. Escalate to the owning team.', 'warn'); return; }
     let approver = r.approver;
     if (approver === me()) approver = app.onCall ? app.onCall.secondary : app.appOwner;
+    // If the approver is also next on the escalation path, send one notification instead of two.
+    const esc = alerts.escalation(a);
+    const pageStep = esc.steps.find((x) => x.who === approver && x.key !== 'noc' && x.state !== 'done' && x.state !== 'engaged');
     OperA.modal.open({
-      title: 'Request approval', form: 'remediate', submitLabel: 'Request approval', wide: true, data: { alert: a.id, approver },
+      title: 'Request approval', form: 'remediate', submitLabel: 'Request approval', wide: true, data: { alert: a.id, approver, page: pageStep ? pageStep.key : '' },
       body: html`${ui.callout('info', `Nothing changes until ${approver} approves`, html`<p>Production changes need a second person. OperA sends this to the approver with the alert context, and the pipeline runs it only after approval.</p>`)}
         <div class="approval-box"><dl class="kv">
           <dt>Action</dt><dd><strong>${r.title}</strong></dd><dt>Target</dt><dd>${r.target}</dd><dt>Blast radius</dt><dd>${r.blastRadius}</dd>
           <dt>Rollback plan</dt><dd>${r.rollbackPlan}</dd><dt>Approver</dt><dd>${approver} · ${approver === r.approver ? r.approverRole : 'alternate approver (you can’t approve your own request)'}</dd></dl></div>
-        <div class="field"><label for="rem-chg">Change record</label><p class="hint" id="rem-chg-hint">Format: CHG- followed by 6 digits, for example CHG-204118. Emergency change records are fine.</p>
+        ${pageStep ? html`<label class="radio-row combined-page"><input type="checkbox" name="page" id="rem-page" checked /><span><strong>Also page ${approver} now, in the same notification</strong><br /><span class="muted small">${approver} is ${pageStep.state === 'due' ? 'due to be paged on the escalation path' : 'next on the escalation path'}. One message carries both the page and this approval request, so they aren’t notified twice.</span></span></label>` : ''}
+        <div class="field"><label for="rem-chg">Change record</label><p class="hint" id="rem-chg-hint">Format: CHG- followed by 6 digits, for example CHG-204118. Emergency change records are fine. ${ui.help('changeRecord', 'What’s a change record, and how do I get one?')}</p>
           <input type="text" id="rem-chg" name="change" autocomplete="off" aria-describedby="rem-chg-hint" /><p class="error-msg" data-error-for="change" hidden></p></div>
         <div class="field"><label for="rem-why">Why now?</label><textarea id="rem-why" name="why" rows="2"></textarea><p class="error-msg" data-error-for="why" hidden></p></div>
         <label class="radio-row"><input type="checkbox" name="confirm" id="rem-confirm" /><span>I’ve read the blast radius and rollback plan.</span></label><p class="error-msg" data-error-for="confirm" hidden></p>`,
@@ -399,11 +438,13 @@
     const a = alerts.get(form.dataset.alert); const r = D.remediations[a.id];
     const st = alerts.st(a.id);
     const id = `APR-${Math.floor(1000 + Math.random() * 8999)}`;
-    st.approvals.push({ id, title: r.title, approver: form.dataset.approver, state: 'pending', at: Date.now(), by: me(), change, why });
+    const paged = !!(form.dataset.page && form.elements.page && form.elements.page.checked);
+    st.approvals.push({ id, title: r.title, approver: form.dataset.approver, state: 'pending', at: Date.now(), by: me(), change, why, paged });
+    if (paged) st.escalations.push({ target: form.dataset.page, at: Date.now(), by: me(), reason: why, combined: true });
     if (!st.status || st.status === 'new') { st.status = 'investigating'; st.assignee = st.assignee || me(); }
-    alerts.log(a.id, `Requested approval from ${form.dataset.approver}: ${r.title} (${change}). Reason: ${why}`);
+    alerts.log(a.id, `${paged ? `Paged ${form.dataset.approver} and requested approval in one notification` : `Requested approval from ${form.dataset.approver}`}: ${r.title} (${change}). Reason: ${why}`);
     OperA.modal.close(); OperA.refresh();
-    OperA.toast(`Approval requested from ${form.dataset.approver}. Nothing runs until they approve.`);
+    OperA.toast(`${paged ? `${form.dataset.approver} was paged with the approval request` : `Approval requested from ${form.dataset.approver}`}. Nothing runs until they approve.`);
   };
   OperA.actions['approval-sim'] = (el) => {
     const st = alerts.st(el.dataset.alert); const p = st.approvals.find((x) => x.id === el.dataset.id);

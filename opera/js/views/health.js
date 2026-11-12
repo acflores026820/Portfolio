@@ -67,6 +67,7 @@
   };
   OperA.changes['health-app'] = () => {
     document.getElementById('health-app').innerHTML = String(appCheck(document.getElementById('hc-app').value, document.getElementById('hc-env').value));
+    OperA.markScrollable();
   };
   OperA.route(/^\/health$/, OperA.views.health);
 })();

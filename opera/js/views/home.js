@@ -29,7 +29,8 @@
   }
   OperA.covSummary = covSummary; OperA.covBar = covBar;
 
-  function appHome() {
+  /** What needs the application developer, most urgent first. Shared by both layouts. */
+  function appActions() {
     const me = D.personas.app;
     const myApps = reg.myApps();
     const myCamr = me.apps;
@@ -77,8 +78,15 @@
         why: `${gaps.join(' · ')}. During incidents, responders can only see what’s onboarded.`,
         href: `#/apps/${app.camrId}?env=prod`, cta: 'Review coverage' });
     });
-    actions.sort((a, b) => a.rank - b.rank);
+    return actions.sort((a, b) => a.rank - b.rank);
+  }
+  OperA.appActions = appActions;
 
+  function appHome() {
+    const me = D.personas.app;
+    const myApps = reg.myApps();
+    const myCamr = me.apps;
+    const actions = appActions();
     const waiting = requests.all().filter((r) => myCamr.includes(r.camrId) && ['approver', 'platform'].includes(requests.next(r).owner));
     const affected = myApps.some((a) => tel.incidentsFor(a).length);
 
@@ -181,7 +189,13 @@
 
   OperA.views.home = {
     title: () => 'Home',
-    render: () => (store.state.role === 'app' ? appHome() : opsHome()),
+    render(params, q) {
+      if (OperA.design() === 'console') return store.state.role === 'app' ? OperA.views.workspace.render() : OperA.views.triage.render([], q);
+      return store.state.role === 'app' ? appHome() : opsHome();
+    },
+    mount(root, params, q) {
+      return OperA.design() === 'console' && store.state.role === 'ops' ? OperA.views.triage.mount(root, [], q) : false;
+    },
   };
   OperA.route(/^\/home$/, OperA.views.home);
 })();
