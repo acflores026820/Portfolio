@@ -1,13 +1,13 @@
 # OperA usability scenarios and design validation
 
-**Prototype v0.2 · November 2026**
+**Prototype v0.3 · November 2026**
 
 > ### ⚠️ These are simulated walkthroughs, not user testing
-> Every scenario below was walked through by the design team using **simulated personas** (a cognitive walkthrough), then re-run as a **script** (`opera/tests/walkthroughs.js`) that drives the prototype in a real browser, in **both layouts** (Guided and Console), and counts interactions.
+> Every scenario below was walked through by the design team using **simulated personas** (a cognitive walkthrough), then re-run as a **script** (`opera/tests/walkthroughs.js`) that drives the prototype in a real browser and counts interactions.
 >
 > **No real users took part. Nothing here is user feedback, and the ratings are design judgements, not measured outcomes.** They tell us where the design is most likely to work or fail, so that real testing (section 5) can focus there.
 >
-> **What changed in v0.2:** every scenario now runs in both layouts, and the four findings left open in v0.1 (numbers 9 to 12 in section 4) are fixed. Interaction counts below are re-measured.
+> **What changed in v0.3:** the two layouts of v0.2 (Guided and Console) are replaced by **one interface for everyone**. There is a new workflow, **D. Ask, paste or jump**, with its own application-team and DevOps scenarios. Every scenario was walked through again and every interaction count re-measured.
 
 ---
 
@@ -25,6 +25,7 @@
 | **A. Telemetry onboarding** | A-App: a developer onboards a service without assistance | A-Ops: an alert where onboarding and ownership data are incomplete |
 | **B. Alert investigation and response** | B-App: first on-call shift, an alert on your own app | B-Ops: deploy-correlated alert, approval-gated rollback |
 | **C. Application or telemetry?** | C-App: "my logs aren't showing up, did I break it?" | C-Ops: "no data" alert caused by the pipeline |
+| **D. Ask, paste or jump** (new in v0.3) | D-App: check a log line and hand-edited settings before deploying | D-Ops: jump to an alert by ID, hand it over, find an owner |
 
 **Evaluation criteria** (from the brief):
 
@@ -40,9 +41,9 @@
 
 **Ratings:** ✅ Good · ⚠️ Watch (works, with a risk to validate) · ❌ Problem (must fix)
 
-**Layouts.** Each scenario was walked through in both. Guided is step by step; Console puts everything on one screen (see `design-review.md` § 5). The alert parts, dialogs and validation are the same code in both, so the per-scenario evaluations below apply to both unless a row says otherwise.
+**One interface.** There is no beginner or expert mode to set up before a scenario. Each walkthrough notes where a newcomer and an experienced person would take different paths on the same screen (see `design-review.md` § 5).
 
-**How to reproduce:** open `#/about` in the prototype and choose **Start … in Guided** or **Start … in Console** next to a scenario, or run:
+**How to reproduce:** open `#/about` in the prototype and choose **Start** next to a scenario, or run:
 
 ```bash
 python3 -m http.server 8765          # from the repository root
@@ -53,37 +54,39 @@ node opera/tests/walkthroughs.js     # needs the playwright package
 
 ## 2. Results at a glance
 
-Interaction counts were measured by `tests/walkthroughs.js` (one click, typed field, tick or selection = one interaction). All 15 scripted runs pass: seven scenarios in each layout, plus a Console-only shortcut check.
+Interaction counts were measured by `tests/walkthroughs.js` (one click, typed field, key press, tick or selection = one interaction). All 10 scripted runs pass: the eight scenarios, the recovery scenario, and a keyboard-shortcut check.
 
-### Interactions by layout
+### Interactions
 
-| Scenario | Guided | Console | Why they differ |
-|---|---|---|---|
-| A-App · Onboard rewards-api to qa | 11 | **8** | One page instead of four steps |
-| A-Ops · ALR-2044, incomplete ownership | 10 (7 core) | **9** (6 core) | The queue is always on screen, so there's no separate page to open |
-| B-Ops · ALR-2041, rollback | 10 (8 without the deliberate error) | **9** | Same reason |
-| B-App · ALR-2045, first on-call | 10 | 10 | Same alert parts once the alert is open |
-| C-Ops · ALR-2042, pipeline "no data" | 5 | **3** | The Console opens on the most urgent alert, which is this one |
-| C-App · "Are my missing logs my fault?" | 2 | 2 | Same screen in both |
-| Recovery · onboarding errors and bad IDs | 6 | 6 | Same handling |
+| Scenario | v0.2 Guided | v0.2 Console | **v0.3** | Why it changed |
+|---|---|---|---|---|
+| A-App · Onboard rewards-api to qa | 11 | 8 | **8** (6 from the box) | One page, no Continue clicks. Typing "onboard rewards-api in qa" fills the page in. |
+| A-Ops · ALR-2044, incomplete ownership | 10 | 9 | **11** (7 core) | The responder sends a drafted procedure (2) rather than a bare request (1) |
+| B-Ops · ALR-2041, rollback | 10 | 9 | **10** (8 without the deliberate error) | Same parts as before |
+| B-App · ALR-2045, first on-call | 10 | 10 | **10** | Same alert parts once the alert is open |
+| C-Ops · ALR-2042, pipeline "no data" | 5 | 3 | **4** | One click to Alerts; the most urgent alert is already open |
+| C-App · "Are my missing logs my fault?" | 2 | 2 | **2** | A goal card on Home, then choose the environment |
+| D-App · Check a log line and settings | — | — | **4** | New |
+| D-Ops · Jump by ID, hand over, find an owner | — | — | **7** | New |
+| Recovery · onboarding errors and bad IDs | 6 | 6 | **6** | Same handling |
 
-B-Ops took 15 interactions in v0.1. It now takes 10 in Guided because the correlated deploy is shown inside the procedure step (2 fewer) and the page and approval request go out as one notification (3 fewer).
+Two counts went up from the v0.2 Console, on purpose. C-Ops: DevOps Home is no longer the alert console, so reaching it is one click. A-Ops: the owning team now receives a draft procedure to review instead of a request to write one.
 
-Fewer interactions is not the same as easier. The counts show how much navigation each layout needs. They say nothing about whether someone understood the screen.
+Fewer interactions is not the same as easier. The counts show how much navigation a task needs. They say nothing about whether someone understood the screen.
 
 ### Ratings by scenario
 
-Ratings apply to both layouts unless the last column says otherwise.
-
-| Scenario | Completion | Clarity | Steps | Error recovery | Stakeholders | Accuracy | Accessibility | Console differs? |
+| Scenario | Completion | Clarity | Steps | Error recovery | Stakeholders | Accuracy | Accessibility | Watch |
 |---|---|---|---|---|---|---|---|---|
-| A-App | ✅ | ✅ | ✅ | ✅ | ✅ 0 people | ✅ | ✅ | ⚠️ Clarity: prerequisites and term definitions are folded away |
-| A-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 1 page, necessary | ✅ | ✅ | Gaps are visible in the queue row itself ("No on-call", "No procedure") |
-| B-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 1 notification | ✅ | ✅ | No |
-| B-App | ✅ | ✅ | ✅ | ✅ | ✅ 1 approver, necessary | ✅ | ✅ | ⚠️ Clarity: a first-timer sees queue, alert and ownership at once |
-| C-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 0 pages (1 avoided) | ✅ | ✅ | No navigation needed at all |
-| C-App | ✅ | ✅ | ✅ | n/a | ✅ 0 people | ✅ | ✅ | No |
-| Recovery | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ✅ | One error summary for the whole page instead of one per step |
+| A-App | ✅ | ✅ | ✅ | ✅ | ✅ 0 people | ✅ | ✅ | Will a newcomer scroll a long page as confidently as they followed a wizard? |
+| A-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 1 page, necessary | ✅ | ✅ | Will owning teams act on drafts? |
+| B-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 1 notification | ✅ | ✅ | |
+| B-App | ✅ | ⚠️ | ✅ | ✅ | ✅ 1 approver, necessary | ✅ | ✅ | A first-timer sees the list, the alert and ownership together |
+| C-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 0 pages (1 avoided) | ✅ | ✅ | |
+| C-App | ✅ | ✅ | ✅ | n/a | ✅ 0 people | ✅ | ✅ | |
+| D-App | ✅ | ✅ | ✅ | ✅ | ✅ 0 people | ✅ | ✅ | Will people think to paste into a search-shaped box? |
+| D-Ops | ✅ | ✅ | ✅ | ✅ | ✅ 0 people asked | ✅ | ✅ | Will responders trust a generated handoff note enough to send it? |
+| Recovery | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ✅ | |
 
 ---
 
@@ -93,47 +96,44 @@ Ratings apply to both layouts unless the last column says otherwise.
 
 **Persona:** Jordan Kim (application team, new to observability)
 **Goal:** Get metrics, logs and traces flowing for `rewards-api` in **qa**, without asking anyone.
-**Start:** Home → *Onboard telemetry*
+**Start:** Home → *Onboard*
 **Built-in difficulty:** logs fail on the first check (plain-text logs); traces haven't arrived yet (no traffic).
 **Done when:** the request is submitted and moving to set-up with nothing left for Jordan to do.
 
-**Walkthrough (11 interactions):**
+**Walkthrough (8 interactions):**
 
 | # | Action | What Jordan sees |
 |---|---|---|
-| 1 | Onboard telemetry | Step 1 "Which application?" with *Your applications* quick picks |
-| 2 | Pick *Rewards Engine · CAMR-108840* | Selected-app confirmation (team, owner, tier). "What's a CAMR ID?" help if needed. |
-| 3 | Choose service `rewards-api` | Component auto-selected ("the only component, so it's selected for you") |
-| 4 | Choose `qa` | Each environment shows what's already set up. prod shows "Needs app owner approval". |
-| 5 | Continue | Signals step with recommended signals **pre-selected**, plus prerequisites and "How do I check?" |
-| 6 | Continue | Configuration pre-filled from the registry (Kubernetes tab pre-selected) |
-| 7 | Run checks | Progress announced. 4 passed, logs **Needs your action**, traces **Waiting for data**. |
-| 8 | *I've fixed it, check again* (logs) | Logs pass, with a platform note: search is about 11 min behind (TEL-553), nothing to fix |
-| 9 | *Check again* (traces) | Traces pass |
-| 10 | Continue | Review: summary, "Approved automatically", what happens next |
-| 11 | Submit request | Request page: "Nothing for you to do. Setting up automatically." |
+| 1 | Onboard | One page with four numbered sections and a "What's left" checklist. Section 1 offers *Your applications* quick picks. |
+| 2 | Pick *Rewards Engine · CAMR-108840* | Selected-app confirmation (team, owner, tier). "What's a CAMR ID?" help if needed. Services appear. |
+| 3 | Choose service `rewards-api` | Component selected for Jordan ("the only component of rewards-api, so it's selected for you") |
+| 4 | Choose `qa` | Each environment shows what's already set up; prod is marked "Needs approval". Sections 2 and 3 fill in: recommended signals **already ticked**, settings pre-filled (Kubernetes tab chosen from the registry). "What's left" says **Approved automatically**. |
+| 5 | Run checks | Progress announced. 4 passed, logs **Needs your action**, traces **Waiting for data**. |
+| 6 | *I've fixed it, check again* (logs) | Logs pass, with a platform note: search is about 11 min behind (TEL-553), nothing to fix |
+| 7 | *Check again* (traces) | Traces pass |
+| 8 | Submit request | Request page: "Nothing for you to do. Setting up automatically." |
+
+**Other ways in, on the same screen.** Typing `onboard rewards-api in qa` in the box and pressing Enter opens the page with steps 2 to 4 done: **6 interactions** (measured). The "Set up telemetry" goal card does the same as step 1. Someone who manages settings in a repository can open "Prefer to do this from code or a pipeline?" under the settings and copy an `opera.yaml` instead.
 
 | Criterion | Rating | Evidence |
 |---|---|---|
 | Task completion | ✅ | Completed with no outside help. Every failure state has an in-place fix. |
-| Clarity of instructions | ✅ | One decision per screen. Glossary toggles for CAMR ID, service, component, environment and each signal. Every configuration line is explained. |
-| Unnecessary steps | ✅ | 2 of 11 are re-checks that are part of the task, and 4 are Continue/Submit. Candidate saving: skip Review for dev/qa when everything passes (−1). Kept, because Review is where approvals and "what happens next" are explained. |
-| Validation and error recovery | ✅ | Logs failure shows the actual bad line received, the cause and a copyable fix. "Waiting" is clearly not an error. Blocking failures (Prototype controls → *Collector unreachable* / *Missing camr.id*) block submission with a fix. **Get help** (diagnostics attached) is offered on every failure, with stronger guidance after repeated attempts. |
+| Clarity of instructions | ✅ | Sections are numbered and fill in as Jordan goes, and "What's left" names the one thing to do next. Glossary toggles for CAMR ID, service, component, environment and each signal. "What does this do?" explains the settings. |
+| Unnecessary steps | ✅ | 2 of 8 are re-checks that are part of the task. The wizard's three Continue clicks are gone; what its Review step said is in the "What's left" panel throughout. |
+| Validation and error recovery | ✅ | Logs failure shows the actual bad line received, the cause and a copyable fix. "Waiting" is clearly not an error. Blocking failures (Prototype controls → *Collector unreachable* / *Missing camr.id*) block submission with a fix. **Get help** (diagnostics attached) is offered on every failure. Submitting early lists every missing item at once. |
 | Stakeholder assistance | ✅ | **0 people.** qa is auto-approved for the owning team. |
-| Operational accuracy | ✅ | Generated configuration carries all required attributes, the region-correct collector endpoint and environment-appropriate sampling (1.0 in qa, 0.1 in prod). The platform-incident note stops Jordan "fixing" working logs. |
-| Accessibility | ✅ | Completed using only roles and accessible names. Progress and results announced. Error summary focused and linked. |
-
-**In the Console layout (8 interactions):** Onboard → pick *Rewards Engine* → choose the service (the component is selected for you) → choose `qa` (recommended signals are ticked for you and the configuration appears) → Run checks → re-check logs → re-check traces → Submit. A readiness panel beside the form shows what's still missing and whether approval is needed, and Submit with something missing lists every problem at once. The fix guidance is identical. Prerequisites and term definitions are folded away, which is the main risk for a newcomer.
+| Operational accuracy | ✅ | Generated settings carry all required attributes, the region-correct collector address and environment-appropriate sampling (1.0 in qa, 0.1 in prod). A unit test confirms every generated configuration passes Fix-it's own rules. The platform-incident note stops Jordan "fixing" working logs. |
+| Accessibility | ✅ | Completed using only roles and accessible names. Focus stays on the control just used while the page updates around it. Progress and results announced. Error summary focused and linked. |
 
 **Changes made after this walkthrough**
 
-- Signals originally started unchecked even though the copy said "we recommend all three". Recommended signals are now pre-selected (saves up to 3 interactions and a decision).
-- The *Next step* for a failed check read "Fix logs received, then check again". It now names the fix: "Switch your logger to JSON output and redeploy".
-- The wizard's error summary appeared but didn't receive focus, because the router moved focus to the heading afterwards. Fixed: views can now own focus after rendering.
+- v0.1: recommended signals are pre-selected; the failed-check next step names the fix; the error summary receives focus.
+- v0.3: the wizard became one page. Choosing a service or environment re-renders the page; a scripted check confirms keyboard focus stays on the control just used.
 
 **Risks to validate with real users**
 
-- Developers who don't own their Kubernetes manifests may stall at step 6. Test whether "Environment variables" is a better default for them.
+- A long page instead of a wizard: do newcomers notice sections 2 and 3 filling in below their choice? The "What's left" panel is the mitigation.
+- Developers who don't own their Kubernetes manifests may stall at the settings. Test whether "Environment variables" is a better default for them.
 - The JSON-logging fix assumes Java/Logback first. Check that Node.js and Python developers find their path.
 - "I've fixed it, check again": will people redeploy before re-checking? The real product should detect "no new deploy since the last check".
 
@@ -143,27 +143,28 @@ Ratings apply to both layouts unless the last column says otherwise.
 
 **Persona:** Sam Ortiz (DevOps, on shift)
 **Goal:** Handle **ALR-2044**: Merchant Portal 5xx at 6%. Find the responsible team, the procedure and the right next action, when the registry has **no on-call schedule**, there's **no procedure**, and **traces arrive without required attributes**.
-**Start:** Alerts queue
+**Start:** Home → *Alerts*
 **Done when:** the right contact has been reached with context, and the gaps are reported so the next responder isn't stuck.
 
-**Walkthrough (10 interactions; 7 to handle the alert, 3 to fix gaps for next time):**
+**Walkthrough (11 interactions; 7 to handle the alert, 4 to fix gaps for next time):**
 
 | # | Action | What Sam sees |
 |---|---|---|
-| 1 | Alerts | Row shows *Merchant Experience* with a **No on-call registered** chip |
-| 2 | Open ALR-2044 | Assessment: likely application (traces "arriving, attributes missing" lowers confidence). Ownership warning with fallback guidance. "No procedure is linked", so generic triage is used. |
+| 1 | Alerts | The list, with the most urgent alert open beside it. The ALR-2044 row carries **No on-call** and **No procedure** chips. |
+| 2 | Choose ALR-2044 in the list | Assessment: likely application (traces "arriving, attributes missing" lowers confidence). Ownership warning with fallback guidance. "No procedure is linked", so generic triage is used. |
 | 3 | Acknowledge | Owner set; escalation ladder: support group after 60 min, incident commander after 120 min |
 | 4–7 | Escalate → choose *SG-MERCHANT-EXP* (business hours) → reason → Send | Context packet attached automatically |
 | 8–9 | Report wrong or missing details → Send to registry owner | Routed to the app owner (Taylor Brooks), not a general channel |
-| 10 | Ask Merchant Experience for a procedure | Logged on the alert timeline |
+| 10 | Draft a procedure from this alert | A draft built from what Sam just did, editable. "Nothing is published from here." |
+| 11 | Send draft to Merchant Experience | Goes to the app owner to review and publish. Logged on the alert timeline. |
 
 | Criterion | Rating | Evidence |
 |---|---|---|
 | Task completion | ✅ | Correct contact reached. Gaps reported. |
 | Clarity of instructions | ✅ | The gap is stated plainly, with what to do instead. Generic triage steps are actionable. |
-| Unnecessary steps | ✅ | The 3 gap-reporting interactions are optional for the incident but stop the next responder repeating it. |
+| Unnecessary steps | ✅ | The 4 gap-fixing interactions are optional for the incident but stop the next responder repeating it. One more than v0.2, because Sam sends a draft rather than a request. |
 | Validation and error recovery | ✅ | Paging needs a reason (validated). The support group is labelled "business hours only". |
-| Stakeholder assistance | ✅ | 1 page (necessary). Registry and procedure fixes go straight to the owner. |
+| Stakeholder assistance | ✅ | 1 page (necessary). The registry report goes straight to the owner. The owning team gets a procedure draft to review instead of a request to write one from nothing. |
 | Operational accuracy | ✅ | The fallback is correct. The escalation card now carries a standing rule: "Customers affected right now? Don't wait for the timers", which pages the incident commander directly. |
 | Accessibility | ✅ | Role/name-only run. Dialog focus is managed. |
 
@@ -174,7 +175,8 @@ Ratings apply to both layouts unless the last column says otherwise.
 **Risks to validate**
 
 - After hours, with customer impact, the support group can't be reached. The card now says to page the incident commander without waiting (v0.2). Still to validate: do responders notice and use it, and should it become an automatic rule ("customer impact > X% → IC now")?
-- Will owners act on registry reports? This needs a follow-up mechanism (see open questions in `design-review.md` § 11).
+- Will owners act on registry reports and procedure drafts? This needs a follow-up mechanism (see open questions in `design-review.md` § 11).
+- Is a draft written by a responder mid-incident good enough to be worth reviewing, or does it need a prompt to add what they'd do differently?
 
 ---
 
@@ -182,14 +184,14 @@ Ratings apply to both layouts unless the last column says otherwise.
 
 **Persona:** Sam Ortiz
 **Goal:** Handle **ALR-2041**: Checkout API p99 latency at 1.9 s, 18 minutes in. Determine the cause, take the appropriate action **without running anything unapproved**, and escalate on time.
-**Start:** Alerts queue (Guided) or the triage console (Console)
+**Start:** Home → *Alerts*
 **Done when:** rollback approval is requested with a valid change record, and the due escalation has gone out with context.
 
-**Walkthrough (Guided: 10 interactions, including one deliberate mistake. Console: 9.)**
+**Walkthrough (10 interactions, including one deliberate mistake):**
 
 | # | Action | What Sam sees |
 |---|---|---|
-| 1–2 | Alerts → ALR-2041 (Console: one click in the list) | Next step: "Acknowledge… Escalation is due now: Priya Raman". Assessment: application, high confidence. Evidence: deploy v2.14.0 **8 minutes before** the alert; 71% of slow traces wait on checkout-pricing. |
+| 1–2 | Alerts → choose ALR-2041 in the list | Next step: "Acknowledge… Escalation is due now: Priya Raman". Assessment: application, high confidence. Evidence: deploy v2.14.0 **8 minutes before** the alert; 71% of slow traces wait on checkout-pricing. |
 | 3 | Acknowledge | Procedure RB-101 with step 1 marked *Next*. Step 2 ("Check for recent changes") already shows the deploy, flagged "Just before the alert". Nothing to open. |
 | 4 | Request rollback | Approval dialog: action, target, blast radius, rollback plan, approver. "Nothing changes until Priya Raman approves." **"Also page Priya Raman now, in the same notification"** is ticked, because Priya is due on the escalation path. |
 | 5–8 | Change record `204118` (wrong format), reason, confirm, submit | Specific error: "'204118' isn't a change record number. It should look like CHG-204118." Focus moves to the field. "What's a change record, and how do I get one?" is beside it. |
@@ -199,7 +201,7 @@ Ratings apply to both layouts unless the last column says otherwise.
 |---|---|---|
 | Task completion | ✅ | Rollback requested correctly. Escalation sent on time, in the same action. |
 | Clarity of instructions | ✅ | Next step names both the action and the due escalation. The procedure's decision callout covers the "errors too?" branch. |
-| Unnecessary steps | ✅ | v0.1 needed 15 interactions. Showing the deploy inline removed 2, and combining the page with the approval request removed 3. |
+| Unnecessary steps | ✅ | v0.1 needed 15 interactions. Showing the deploy inline removed 2, and combining the page with the approval request removed 3. An experienced responder can do steps 1 to 3 from the keyboard (`J`, `A`) or type `alr2041` in the box. |
 | Validation and error recovery | ✅ | Format error is specific, focused and fixable without losing the other fields. |
 | Stakeholder assistance | ✅ | Priya gets **one** notification carrying both the page and the approval request. The option can be unticked if a page isn't wanted. |
 | Operational accuracy | ✅ | Nothing ran. Approver is the app on-call. Tier 1 timer (15 min) is correct. You can't approve your own request. |
@@ -216,7 +218,7 @@ Ratings apply to both layouts unless the last column says otherwise.
 
 **Persona:** Jordan Kim, primary on-call for Rewards Engine for the first time
 **Goal:** **ALR-2045**: points accrual lag at 22 min. Understand what's wrong and what Jordan is allowed to do.
-**Start:** Home (*Your next actions* lists the alert first: "You're primary on-call for Rewards Engine")
+**Start:** Home (*Needs you* lists the alert first: "You're primary on-call for Rewards Engine")
 **Done when:** the procedure is followed and the stuck-scheduler restart is requested from the right approver.
 
 **Walkthrough (10 interactions):**
@@ -232,7 +234,7 @@ Ratings apply to both layouts unless the last column says otherwise.
 | Criterion | Rating | Evidence |
 |---|---|---|
 | Task completion | ✅ | Correct action requested from the correct approver. |
-| Clarity of instructions | ✅ | Clear. The terms a first-timer may not know are now explained where they appear: "What does Tier 2 mean?" on the escalation card, and "What's a change record, and how do I get one?" in the approval dialog. In the Console layout this scenario is denser (⚠️): queue, alert and ownership are all on screen. |
+| Clarity of instructions | ⚠️ | The "Next step" box is the first thing in the alert, and the terms a first-timer may not know are explained where they appear: "What does Tier 2 mean?" on the escalation card, and "What's a change record, and how do I get one?" in the approval dialog. The risk: on a wide screen Jordan sees the alert list, the alert and the ownership panel together. For Jordan the list is short (one alert, filtered to *Mine*), which helps. Validate with real first-timers. |
 | Unnecessary steps | ✅ | Ticking steps is optional but gives the hand-off a record. |
 | Validation and error recovery | ✅ | Same approval validations as B-Ops. |
 | Stakeholder assistance | ✅ | 1 approver (necessary). No platform team involved. |
@@ -252,18 +254,16 @@ Ratings apply to both layouts unless the last column says otherwise.
 
 **Persona:** Sam Ortiz
 **Goal:** **ALR-2042**: Ledger Sync reconciliation throughput, *no data* for 30 min (Critical). Decide whether to page Core Ledger.
-**Start:** Alerts queue (row already marked **Telemetry issue**)
+**Start:** Home → *Alerts* (the row is already marked **Telemetry issue**)
 **Done when:** the alert is linked to the telemetry incident, and the application team is not paged.
 
-**Walkthrough (Guided, 5 interactions):** open queue → open alert → *Link to TEL-552* (next step) → tick "Hold paging Core Ledger…" → confirm.
-
-**In the Console layout (3 interactions):** the triage console opens on the most urgent alert, which is this one, so Sam starts at *Link to TEL-552*.
+**Walkthrough (4 interactions):** Alerts (the most urgent alert, this one, is already open) → *Link to TEL-552* (the next step) → tick "Hold paging Core Ledger…" → confirm.
 
 | Criterion | Rating | Evidence |
 |---|---|---|
 | Task completion | ✅ | Linked, with paging held. |
 | Clarity of instructions | ✅ | Headline "Likely a telemetry problem, not the application". Evidence: metrics missing (TEL-552); logs fresh and showing reconcile batches completing with 0 errors. |
-| Unnecessary steps | ✅ | 5 is the minimum for a deliberate, confirmed decision. |
+| Unnecessary steps | ✅ | 4: one to reach the alerts, three for a deliberate, confirmed decision. |
 | Validation and error recovery | ✅ | Paging hold is opt-in and auto-reopens 15 min after the incident resolves if the alert still fires. |
 | Stakeholder assistance | ✅ | **0 pages. One wrong page avoided** (Core Ledger), and one redundant page avoided (Telemetry on-call, already on TEL-552). |
 | Operational accuracy | ✅ | A critical alert isn't silenced, just correctly attributed. The safety net reopens it. |
@@ -280,32 +280,103 @@ Ratings apply to both layouts unless the last column says otherwise.
 
 **Persona:** Jordan Kim, just after onboarding qa
 **Goal:** Find out whether missing logs in search are Jordan's fault.
-**Start:** Home (banner: "Telemetry platform issue affecting Rewards Engine… not something your team needs to fix")
+**Start:** Home (a one-line strip: "1 telemetry incident: TEL-553 Log ingestion delayed in EU Central. A platform problem, not yours to fix.")
 **Done when:** Jordan knows it's the platform and that nothing needs changing.
 
-**Walkthrough (2 interactions):** Telemetry health → *Check one application* (Rewards Engine pre-selected) → choose `qa` → "Rewards Engine is affected by TEL-553… doesn't need to change anything."
+**Walkthrough (2 interactions):** the goal card *Is it me or the platform?* (Rewards Engine is already chosen) → choose `qa` → "Rewards Engine is affected by TEL-553… **It's the platform.** … Loyalty Engineering doesn't need to change anything."
+
+Typing "why are my logs missing?" in the box offers the same check as its best match.
 
 | Criterion | Rating | Evidence |
 |---|---|---|
 | Task completion | ✅ | |
-| Clarity of instructions | ✅ | Separate guidance cards: "If you're responding to alerts" and "If you're on an application team". |
-| Unnecessary steps | ✅ | The home banner and the validation note often answer this before Jordan navigates at all. |
+| Clarity of instructions | ✅ | The verdict is the first thing on the page and is one sentence. Below it, separate guidance: "If you're responding to alerts" and "If you're on an application team". |
+| Unnecessary steps | ✅ | The strip on Home and the note on the validation check often answer this before Jordan navigates at all. |
 | Stakeholder assistance | ✅ | 0 people. This is the "is it you or us?" question the Telemetry Platform team usually answers by hand. |
 | Operational accuracy | ✅ | Stops a working configuration from being changed. |
 | Accessibility | ✅ | Result region is live, so changes are announced. |
 
 ---
 
+### D-App · Check a log line and hand-edited settings before deploying
+
+**Persona:** Jordan Kim
+**Goal:** Jordan changed the logging and edited the OpenTelemetry settings by hand. Find out whether they're right **before** deploying and waiting.
+**Start:** Home
+**Done when:** Jordan knows what to change, has the corrected settings, and knows when settings are right.
+
+**Walkthrough (4 interactions):**
+
+| # | Action | What Jordan sees |
+|---|---|---|
+| 1 | Paste a log line into the box: `2026-11-17 10:02:11 ERROR payment failed order=1182` | Best match: "Check this log line with Fix-it" |
+| 2 | Enter | *Check my setup*, with the result focused: "This line is plain text, not JSON, so it can't be searched by field", why that matters, and how to switch the logger to JSON |
+| 3 | Try the example *Settings sent to the wrong environment* | "1 thing to fix before you deploy." Five checks pass. **Collector address** fails: "The settings say qa, but the address is the prod collector. Your qa data would land in prod." The corrected line, then the full corrected settings, each with Copy. "Nothing has been changed for you." |
+| 4 | Try *Settings that are right* | "These settings are right", with a button to continue onboarding that service |
+
+| Criterion | Rating | Evidence |
+|---|---|---|
+| Task completion | ✅ | Each mistake is found and its fix shown, without deploying. |
+| Clarity of instructions | ✅ | Every finding has a plain title, what's wrong in one sentence, and "How to fix it". Fix-it says how it read the paste ("environment variables for rewards-api in Rewards Engine (qa)"). |
+| Unnecessary steps | ✅ | Paste and read. No form, no choosing what kind of text it is. |
+| Validation and error recovery | ✅ | Text that isn't a log line or settings gets "OperA didn't recognise this" with what Fix-it can check. Partial settings get "Nothing wrong in what you pasted", not a false all-clear. When the right value can't be known (an unknown environment), no corrected version is offered. |
+| Stakeholder assistance | ✅ | **0 people.** This replaces "can someone look at my config?" in the platform channel. |
+| Operational accuracy | ✅ | Checked against the registry: the right application, a registered service and component, an environment the service runs in, and the collector for that environment and region. The rules are unit-tested (15 tests). Fix-it never applies a change. |
+| Accessibility | ✅ | The result heading takes focus; each finding's state is icon plus text; code blocks have a Copy button with a text label. |
+
+**Risks to validate**
+
+- Will developers think to paste into a box that looks like search? The Home heading, the placeholder and an example chip say so. If not, the *Check my setup* goal card and navigation item still lead there.
+- Fix-it can only judge the text. Settings that are right on paper can still fail in a cluster (network, secrets). The copy says "before you deploy", and onboarding's own checks cover what happens after.
+
+---
+
+### D-Ops · Jump to an alert by ID, hand it over, find an owner
+
+**Persona:** Sam Ortiz, near the end of a shift
+**Goal:** A colleague messages "ALR-2041?". Get to it, leave a handoff note for the next shift, then answer "who owns Merchant Portal?".
+**Start:** Home
+**Done when:** the note is on the alert, and Sam has the owning team and on-call situation for Merchant Portal.
+
+**Walkthrough (7 interactions):**
+
+| # | Action | What Sam sees |
+|---|---|---|
+| 1 | Type `alr2041` in the box (no dash) | Best match: "Open alert ALR-2041 · Checkout API p99 latency above 1.5 s" |
+| 2 | Enter | The alert, with the list beside it and Priya Raman (primary on-call) in the ownership panel |
+| 3 | Write handoff note | A note already filled in: the alert, application, status; **What we know** (summary, impact, "Likely an application problem", the strongest evidence); **Done so far**; **Next** (next step, the next escalation, the procedure) |
+| 4 | Save to the alert's activity | "Handoff note saved." It can also be copied into chat. |
+| 5 | `Ctrl`+`K` | Focus in the box |
+| 6 | Type `who owns merchant portal` | Best match: "See who owns Merchant Portal · Merchant Experience · no on-call registered" |
+| 7 | Enter | The application page: owning team, app owner, and a warning that no on-call schedule is registered |
+
+| Criterion | Rating | Evidence |
+|---|---|---|
+| Task completion | ✅ | Both questions answered and the handoff recorded. |
+| Clarity of instructions | ✅ | Each suggestion says what it will do. The ownership answer is in the suggestion itself, before Sam opens anything. |
+| Unnecessary steps | ✅ | No navigation at all: every move starts from the box. Writing the note is one click plus any edits. |
+| Validation and error recovery | ✅ | The ID is accepted without its dash. An unknown ID or name still leaves "Search everything", so the box never dead-ends. The note is editable before it's saved. |
+| Stakeholder assistance | ✅ | **0 people asked.** The next shift doesn't need to message Sam, and Sam didn't need to ask who owns the application. |
+| Operational accuracy | ✅ | The note is built from the alert's record, not from memory, and includes the assessment and what's pending approval. The ownership gap is stated, not hidden. Nothing in the box or the note can approve, resolve or page. |
+| Accessibility | ✅ | The box is a standard combobox: options are announced, arrow keys move the active option, focus lands on the new page's heading after Enter. The dialog traps focus and returns it. |
+
+**Risks to validate**
+
+- Will responders send a generated note as it is, or rewrite it? If they rewrite it every time, the template is wrong.
+- `Ctrl`+`K` is known to people who use developer tools. Others will click the box, which works the same.
+
+---
+
 ### Recovery · Errors and bad identifiers (supporting scenario)
 
-**Walkthrough (6 interactions in both layouts).** In the Console layout step 2 is *Submit request* with nothing chosen, and the summary lists every missing item at once:
+**Walkthrough (6 interactions):**
 
 | # | Action | Outcome |
 |---|---|---|
-| 1–2 | Onboard → Continue with nothing chosen | "There's a problem" summary, focused, with links to fields |
+| 1–2 | Onboard → Submit request with nothing chosen | "There's a problem" summary, focused, with links to fields |
 | 3 | Type `camr108840` | Forgiving search finds Rewards Engine and explains the correct format |
 | 4 | Type `CAMR-123456` | "No application found" with what to check and who registers applications |
-| 5–6 | Type `CAMR-099120`, select it | "This application is retired… ask Alex Morgan to reactivate it". Continue is hidden. |
+| 5–6 | Type `CAMR-099120`, select it | "This application is retired… ask Alex Morgan to reactivate it". Submit is hidden. |
 
 ---
 
@@ -329,9 +400,18 @@ Ratings apply to both layouts unless the last column says otherwise.
 | 14 | A few standalone links were under 24 px tall | ✅ Fixed |
 | 15 | A wide table couldn't be scrolled by keyboard on a phone-width screen | ✅ Fixed |
 | 16 | Cards in a grid were misaligned by a stray margin | ✅ Fixed |
-| 17 | Console: the queue re-sorts when an alert is acknowledged, so the selected row moves | ⚠️ Open (selection follows the alert; watch in real use) |
-| 18 | Console: prerequisites and definitions are folded away, which may lose newcomers | ⚠️ Open (Guided is the suggested starting point for application teams) |
-| 19 | Two layouts cost more to maintain than one | ⚠️ Open (decide after testing whether both earn their place) |
+| 17 | The alert list re-sorts when an alert is acknowledged, so the selected row moves | ⚠️ Open (selection follows the alert; watch in real use) |
+| 18 | v0.2 Console: prerequisites and definitions were folded away, which could lose newcomers | ✅ Closed in v0.3 (one interface; help sits beside each choice, in the same place for everyone) |
+| 19 | Two layouts cost more to maintain than one, and asked newcomers to choose before they could know | ✅ Closed in v0.3 (one interface, on the product owner's direction) |
+| 20 | The navigation row was clipped on laptop-width screens | ✅ Fixed in v0.3 (shorter labels; fits from 1101 px; a menu below that) |
+| 21 | The fixed "Prototype controls" button sat on top of page content | ✅ Fixed in v0.3 (moved into the prototype strip at the top) |
+| 22 | At phone width the logo link had no accessible name | ✅ Fixed in v0.3 |
+| 23 | "Show data as a table", the primer and application names on Coverage were under 24 px tall | ✅ Fixed in v0.3 |
+| 24 | Home scrolled sideways at 320 px, and the top bar wrapped unpredictably on phones | ✅ Fixed in v0.3 (two fixed rows on phones) |
+| 25 | The closed phone menu could be reached with Tab, and opening it left focus behind it | ✅ Fixed in v0.3 (hidden when closed; opens with focus inside; closes on Escape, a click outside, or choosing a link) |
+| 26 | A first-time on-call developer sees the alert list, the alert and ownership together | ⚠️ Open (the next step is first; one pane at a time on narrow screens; test with real first-timers) |
+| 27 | Pasting into a search-shaped box may not occur to people | ⚠️ Open (heading, placeholder and example chip say so; *Check my setup* is also a goal card and a navigation item) |
+| 28 | A-Ops takes one more interaction than in v0.2 | Accepted (the responder sends a draft procedure, which saves the owning team more than it costs the responder) |
 
 ---
 
@@ -345,7 +425,7 @@ The scenarios above are the task set. Real testing should check the ⚠️ risks
 - 5–6 DevOps or operations engineers who handle alerts for applications they don't own.
 - At least 2 participants who use a screen reader, and 1 who uses keyboard only or magnification. Recruit for this; don't assume it.
 
-**Layouts:** each participant does the scenarios in both layouts, in alternating order between participants, then says which they would keep and why.
+**How people start:** don't tell participants about the box, the goal cards or the navigation. Record which one each person uses first for each task, and whether they ever paste.
 
 **Format:** 75-minute moderated sessions, think-aloud, on a staging build with realistic but synthetic data. Use the **prototype controls** to set each scenario's state before the session, not in front of the participant.
 
@@ -360,8 +440,10 @@ The scenarios above are the task set. Real testing should check the ⚠️ risks
 | Wrong-team pages in B and C scenarios | 0 |
 | Single Ease Question (1–7) per task | ≥ 5.5 median |
 | System Usability Scale | ≥ 75 |
-| Screen reader participants complete A-App and B-Ops | Yes, without workarounds, in both layouts |
-| Layout chosen after using both, by role | Recorded. No target; this decides the default. |
+| Screen reader participants complete A-App, B-Ops and D-Ops | Yes, without workarounds |
+| How each task was started (box, goal card, navigation) | Recorded. No target; this shows whether the box is found. |
+| D-App: mistakes found before the first deploy | All three, unassisted |
+| B-App: first-time on-call participants who read "Next step" before anything else | Recorded |
 
 **Questions to answer**
 
@@ -369,5 +451,6 @@ The scenarios above are the task set. Real testing should check the ⚠️ risks
 2. Do responders trust the "Application or telemetry?" assessment enough to *not* page? What evidence do they look at first?
 3. Is the role-ordered navigation helpful, or confusing for people who do both jobs?
 4. Does the assistant reduce questions to platform engineers, or create new "the AI said…" escalations?
-5. Which layout do people choose after using both? Does it match the suggested starting point (Guided for application teams, Console for DevOps)?
-6. Does the Console's lower interaction count turn into faster, equally accurate decisions, or do newcomers miss things?
+5. Does one interface work for both a newcomer and an experienced person, or does either group say it's too much or too little? Where?
+6. Do people find the box, and do they paste into it? If not, what did they expect it to do?
+7. Do application teams act on the readiness gaps in *Needs you*, and do owning teams publish the procedure drafts they're sent?

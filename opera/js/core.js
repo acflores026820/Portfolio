@@ -68,26 +68,20 @@
     alerts: {},
     proto: { validation: 'realistic', dataSource: 'normal' },
     seq: 3110,
-    // Layout preferences. Each role picks its own layout: 'guided' or 'console'.
-    design: { app: 'guided', ops: 'guided' },
-    chosen: false,          // has the person picked a layout on the chooser page?
-    shortcuts: true,        // single-key shortcuts in the Console layout (can be turned off)
-    triage: { status: 'open', scope: '' },
+    // Display and input preferences. These never change layout or content.
+    theme: 'auto',          // 'auto' follows the operating system; 'light' or 'dark' once chosen
+    shortcuts: true,        // single-key shortcuts on the alerts screen (can be turned off)
+    fixit: '',              // the last text checked with Fix-it
   });
-  const PREFS = ['design', 'chosen', 'shortcuts'];
+  const PREFS = ['theme', 'shortcuts'];
   let state;
-  function load(saved) {
-    const d = defaults();
-    state = Object.assign(d, saved);
-    state.design = Object.assign({ app: 'guided', ops: 'guided' }, saved && saved.design);
-    state.triage = Object.assign({ status: 'open', scope: '' }, saved && saved.triage);
-  }
+  function load(saved) { state = Object.assign(defaults(), saved); }
   try { load(JSON.parse(localStorage.getItem(KEY) || '{}')); }
   catch (e) { load({}); }
   const store = {
     get state() { return state; },
     save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode: keep in memory */ } },
-    /** Clear prototype data. keepPrefs keeps the layout choices (used by scenario launchers). */
+    /** Clear prototype data. keepPrefs keeps display preferences (used by scenario launchers). */
     reset({ keepPrefs = false } = {}) {
       const keep = {};
       if (keepPrefs) PREFS.forEach((k) => { keep[k] = state[k]; });
@@ -97,14 +91,16 @@
   };
   OperA.store = store;
 
-  /* Layout ("design") for the current role, reflected on <html> so CSS can theme it. */
-  OperA.design = () => (state.design[state.role] === 'console' ? 'console' : 'guided');
-  OperA.applyDesign = () => {
+  /* Appearance: light or dark. Colours only; there is one layout for everyone. */
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+  OperA.theme = () => (state.theme === 'light' || state.theme === 'dark' ? state.theme : (prefersDark.matches ? 'dark' : 'light'));
+  OperA.applyTheme = () => {
     const el = document.documentElement;
-    el.dataset.design = OperA.design();
+    el.dataset.theme = OperA.theme();
     el.dataset.role = state.role;
   };
-  OperA.applyDesign();
+  prefersDark.addEventListener('change', () => OperA.applyTheme());
+  OperA.applyTheme();
 
   /* =====================================================================
    * Registry lookups
@@ -511,9 +507,9 @@
     let match = null;
     for (const [re, view] of routes) { const m = path.match(re); if (m) { match = { view, params: m.slice(1) }; break; } }
     const main = document.getElementById('main');
-    OperA.applyDesign();
+    OperA.applyTheme();
     const scrollY = window.scrollY;
-    // Panes that scroll on their own (Console layout) keep their position across re-renders.
+    // Panes that scroll on their own (the alerts screen) keep their position across re-renders.
     const paneScroll = {};
     main.querySelectorAll('[data-scroll-key]').forEach((el) => { paneScroll[el.dataset.scrollKey] = el.scrollTop; });
     const activeId = document.activeElement && document.activeElement.id;

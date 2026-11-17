@@ -5,79 +5,55 @@
   const { html, raw, fmt, reg, tel, alerts, store, ui } = OperA;
   const D = OperA.data;
 
-  /* ---------------- queue ---------------- */
-  OperA.views.alerts = {
-    title: () => 'Alerts',
-    mount(root, params, q) { return OperA.design() === 'console' ? OperA.views.triage.mount(root, [], q) : false; },
-    render(_, q) {
-      if (OperA.design() === 'console') return OperA.views.triage.render([], q);
-      const role = store.state.role;
-      const ds = store.state.proto.dataSource;
-      const scope = q.scope || (role === 'app' ? 'mine' : 'all');
-      const status = q.status || 'open';
-      const verdict = q.verdict || 'any';
-      const appF = q.app || '';
-      const envF = q.env || '';
-      let list = alerts.all();
-      if (status === 'open') list = list.filter((a) => a.status !== 'resolved');
-      if (status === 'new') list = list.filter((a) => a.status === 'new');
-      if (scope === 'mine') list = list.filter((a) => D.personas.app.apps.includes(a.camrId));
-      if (appF) list = list.filter((a) => a.camrId === appF);
-      if (envF) list = list.filter((a) => a.env === envF);
-      const rows = alerts.sort(list).map((a) => ({ a, as: tel.assess(a) }));
-      let filtered = rows;
-      if (verdict === 'app') filtered = rows.filter((x) => x.as.verdict === 'application');
-      if (verdict === 'not-app') filtered = rows.filter((x) => x.as.verdict !== 'application');
-      if (q.gap) filtered = filtered.filter((x) => !reg.app(x.a.camrId).onCall || !x.a.runbook);
-      const qs = (patch) => '#/alerts?' + new URLSearchParams(Object.entries(Object.assign({ scope, status, verdict, app: appF, env: envF }, patch)).filter(([, v]) => v)).toString();
-      const sel = (id, label, name, opts, value) => html`<div class="field"><label for="${id}">${label}</label><select id="${id}" data-change="alerts-filter" data-key="${name}">${opts.map(([v, l]) => html`<option value="${v}" ${v === value ? raw('selected') : ''}>${l}</option>`)}</select></div>`;
-
-      let body;
-      if (ds === 'error') body = ui.errorState({ title: 'We couldn’t load alerts', body: 'The alerting service didn’t respond. Paging still works. On-call engineers are notified directly.', cached: 'If this continues, use the incident channel #prod-ops and check Telemetry health.' });
-      else if (ds === 'empty' || !filtered.length) body = ui.emptyState({ title: rows.length && !filtered.length ? 'No alerts match these filters' : 'No open alerts', body: rows.length && !filtered.length ? 'Try clearing a filter.' : 'Nothing is alerting right now.',
-        action: rows.length && !filtered.length ? html`<a class="btn" href="#/alerts">Clear filters</a>` : '' });
-      else body = html`<div class="table-wrap"><table class="table">
-        <caption class="sr-only">Alerts, most urgent first</caption>
-        <thead><tr><th scope="col">Severity</th><th scope="col">Alert</th><th scope="col">Responsible team</th><th scope="col">App or telemetry?</th><th scope="col">Status</th><th scope="col">Next step</th></tr></thead>
-        <tbody>${filtered.map(({ a, as }) => {
-          const app = reg.app(a.camrId);
-          const n = alerts.nextStep(a);
-          return html`<tr>
-            <td>${ui.sev(a.severity)}</td>
-            <td style="min-width:240px"><a class="row-title" href="#/alerts/${a.id}">${a.title}</a>
-              <div class="row-sub">${a.id} · ${app.name} · <span class="mono">${a.service}/${a.component}</span> · ${ui.envTag(a.env)} · ${a.status === 'resolved' ? `resolved ${fmt.rel(a.resolvedAt || a.startedAt)}` : html`started ${ui.timeAgo(a.startedAt)}`}</div></td>
-            <td><div class="row-title" style="font-weight:600">${app.owningTeam}</div><div class="row-sub">${app.onCall ? `On-call: ${app.onCall.primary}` : html`<span class="chip chip-warn">${ui.icon('alert')}No on-call registered</span>`}</div></td>
-            <td>${ui.verdictChip(as.verdict)}${a.linkedIncident ? html`<div class="row-sub">Linked to ${a.linkedIncident}</div>` : ''}</td>
-            <td><div class="cell-stack">${ui.alertStatus(a.status)}${a.assignee ? html`<span class="row-sub">${a.assignee}</span>` : ''}</div></td>
-            <td class="small" style="min-width:200px">${n.text}</td></tr>`;
-        })}</tbody></table></div>`;
-
-      const apps = D.applications.filter((a) => a.status === 'active');
-      return html`
-        ${ui.pageHead({ title: role === 'app' && scope === 'mine' ? 'Alerts on my applications' : 'Alerts',
-          lead: 'Most urgent first. Each alert shows who owns it, whether it’s likely the application or the telemetry, and what to do next.' })}
-        ${ui.incidentBanner()}
-        <div class="toolbar">
-          <div class="field"><span class="field-label" id="lbl-scope">Applications</span><div class="seg" role="group" aria-labelledby="lbl-scope">
-            <button type="button" data-action="nav" data-href="${qs({ scope: 'mine' })}" aria-pressed="${scope === 'mine'}">Mine</button>
-            <button type="button" data-action="nav" data-href="${qs({ scope: 'all' })}" aria-pressed="${scope === 'all'}">All</button></div></div>
-          ${sel('f-status', 'Status', 'status', [ ['open', 'Open'], ['new', 'New (not acknowledged)'], ['all', 'All, including resolved'] ], status)}
-          ${sel('f-verdict', 'App or telemetry?', 'verdict', [ ['any', 'Any'], ['app', 'Likely application'], ['not-app', 'Telemetry or unclear'] ], verdict)}
-          ${sel('f-app', 'Application', 'app', [ ['', 'Any application'], ...apps.map((a) => [a.camrId, a.name]) ], appF)}
-          ${sel('f-env', 'Environment', 'env', [ ['', 'Any'], ...D.envs.map((e) => [e, e]) ], envF)}
-          ${q.gap ? html`<a class="btn btn-sm" href="${qs({})}">${ui.icon('x')}Showing gaps only</a>` : ''}
-        </div>
-        <p class="muted small" aria-live="polite">${fmt.plural(ds === 'normal' ? filtered.length : 0, 'alert')}</p>
-        ${body}`;
-    },
-  };
-  OperA.changes['alerts-filter'] = (el) => {
-    const q = Object.assign({}, OperA.current.query, { [el.dataset.key]: el.value });
-    Object.keys(q).forEach((k) => { if (!q[k]) delete q[k]; });
-    location.hash = '#/alerts?' + new URLSearchParams(q).toString();
-    setTimeout(() => { const s = document.getElementById(el.id); if (s) s.focus(); }, 0);
-  };
-  OperA.route(/^\/alerts$/, OperA.views.alerts);
+  /* ---------------- queue (always visible beside the selected alert) ----------------
+   * Filters live in the address (#/alerts?status=new&app=CAMR-…), so a filtered
+   * queue can be bookmarked or shared, and they survive moving between alerts.
+   * ------------------------------------------------------------------ */
+  function filters(q) {
+    const role = store.state.role;
+    return {
+      status: ['open', 'new', 'all'].includes(q.status) ? q.status : 'open',
+      scope: q.scope === 'mine' || q.scope === 'all' ? q.scope : (role === 'app' ? 'mine' : 'all'),
+      app: q.app && reg.app(q.app) ? q.app : '',
+      kind: q.kind === 'not-app' ? 'not-app' : '',
+      gap: q.gap === '1',
+    };
+  }
+  /** Query string for a set of filters, leaving out the defaults. */
+  function qs(f, patch) {
+    const n = Object.assign({}, f, patch);
+    const role = store.state.role;
+    const out = {};
+    if (n.status !== 'open') out.status = n.status;
+    if (n.scope !== (role === 'app' ? 'mine' : 'all')) out.scope = n.scope;
+    if (n.app) out.app = n.app;
+    if (n.kind) out.kind = n.kind;
+    if (n.gap) out.gap = '1';
+    const str = new URLSearchParams(out).toString();
+    return str ? `?${str}` : '';
+  }
+  function queue(f) {
+    let list = alerts.all();
+    if (f.status === 'open') list = list.filter((a) => a.status !== 'resolved');
+    if (f.status === 'new') list = list.filter((a) => a.status === 'new');
+    if (f.scope === 'mine') list = list.filter((a) => D.personas.app.apps.includes(a.camrId));
+    if (f.app) list = list.filter((a) => a.camrId === f.app);
+    if (f.kind) list = list.filter((a) => tel.assess(a).verdict !== 'application');
+    if (f.gap) list = list.filter((a) => !reg.app(a.camrId).onCall || !a.runbook);
+    return alerts.sort(list);
+  }
+  const seg = (label, f, key, options) => html`<div class="seg seg-sm" role="group" aria-label="${label}">${options.map(([v, l]) =>
+    html`<button type="button" data-action="queue-filter" data-href="#/alerts${qs(f, { [key]: v })}" aria-pressed="${v === f[key]}">${l}</button>`)}</div>`;
+  function alertRow(a, selectedId, query) {
+    const app = reg.app(a.camrId);
+    const as = tel.assess(a);
+    return html`<li><a class="alert-row" href="#/alerts/${a.id}${query}" ${a.id === selectedId ? raw('aria-current="true"') : ''}>
+      <span class="alert-row-top">${ui.sev(a.severity)}${ui.alertStatus(a.status)}<span class="alert-row-age">${a.status === 'resolved' ? 'resolved' : fmt.dur(fmt.minsSince(a.startedAt))}</span></span>
+      <span class="alert-row-title">${a.title}</span>
+      <span class="alert-row-meta">${a.id} · ${app.name} · ${a.env} · ${app.owningTeam}</span>
+      <span class="alert-row-tags">${ui.verdictChip(as.verdict)}${!app.onCall ? html`<span class="chip chip-warn">${ui.icon('alert')}No on-call</span>` : ''}${!a.runbook ? html`<span class="chip chip-warn">${ui.icon('alert')}No procedure</span>` : ''}</span>
+    </a></li>`;
+  }
 
   /* ---------------- detail ----------------
    * The alert page is built from parts so both layouts (Guided page, Console
@@ -138,7 +114,7 @@
     return html`<section class="card" aria-labelledby="h-rb">
       <div class="card-head"><h2 class="card-title" id="h-rb">${ui.icon('book')}Handling procedure</h2><span class="small muted">${a.stepsDone.length} of ${rb.steps.length} steps done</span></div>
       ${fallback ? ui.callout('warn', 'No procedure is linked to this alert', html`<p>Using <strong>${rb.title}</strong> instead. Generic steps are slower, so ask ${app.owningTeam} to add a procedure once this is handled.</p>`,
-        html`<button type="button" class="btn btn-sm" data-action="request-runbook" data-alert="${a.id}">Ask ${app.owningTeam} for a procedure</button>`) : ''}
+        html`<button type="button" class="btn btn-sm" data-action="draft-runbook" data-alert="${a.id}">${ui.icon('book')}Draft a procedure from this alert</button>`) : ''}
       <p><a href="#/runbooks/${rb.id}"><strong>${rb.title}</strong></a> <span class="muted small">· Owner ${rb.owner} · Reviewed ${fmt.date(new Date(rb.lastReviewed).getTime())}</span></p>
       ${stale ? ui.callout('warn', 'This procedure is overdue for review', html`<p>It was last reviewed more than 6 months ago, so some steps may be out of date. Follow it, but confirm anything risky with ${rb.owner}.</p>`) : ''}
       <p class="small">${rb.summary}</p>
@@ -168,6 +144,7 @@
         ${m.a.status === 'new' && m.n.action !== 'ack' ? actionBtn(m, 'ack') : ''}
         ${m.n.action !== 'escalate' ? actionBtn(m, 'escalate', 'Escalate or page someone') : ''}
         ${m.n.action !== 'resolve' ? actionBtn(m, 'resolve') : ''}
+        <button type="button" class="btn" data-action="handoff" data-alert="${m.a.id}">${ui.icon('copy')}Write handoff note</button>
         <button type="button" class="btn btn-ghost" data-action="open-assistant" data-prompt="summary">${ui.icon('sparkle')}Ask OperA to summarize</button>
       </div>` : ''),
     whats: ({ a }) => html`<section class="card" aria-labelledby="h-what">
@@ -241,27 +218,135 @@
     main: (m) => html`${parts.whats(m)}${parts.assessment(m)}${parts.runbook(m)}${parts.approvals(m)}${parts.activity(m)}`,
     side: (m) => html`${parts.ownership(m)}${parts.escalation(m)}${parts.investigate(m)}${parts.related(m)}`,
   };
-  OperA.alertParts = { parts, model };
 
-  OperA.views.alertDetail = {
-    title: ([id]) => (alerts.get(id) ? `${id} · ${alerts.get(id).title}` : 'Alert not found'),
+  /* On narrow screens there is room for one pane: the queue, or the alert you opened. */
+  const NARROW = window.matchMedia('(max-width: 1099px)');
+  NARROW.addEventListener('change', () => { if (document.getElementById('triage')) OperA.refresh(); });
+
+  OperA.views.alerts = {
+    title: ([id]) => (id && alerts.get(id) ? `${id} · ${alerts.get(id).title}` : 'Alerts'),
     render([id], q) {
-      if (OperA.design() === 'console') return OperA.views.triage.render([id], q);
-      const m = model(id);
-      if (!m) return html`${ui.pageHead({ title: 'Alert not found', lead: `There’s no alert ${id}. It may have been closed and archived.`, crumbs: [ { href: '#/alerts', label: 'Alerts' }, { label: id } ] })}<a class="btn" href="#/alerts">All alerts</a>`;
-      return html`
-        ${ui.pageHead({ crumbs: [ { href: '#/alerts', label: 'Alerts' }, { label: m.a.id } ], eyebrow: parts.eyebrow(m), title: m.a.title, lead: parts.lead(m) })}
-        ${parts.nextStep(m)}
-        ${parts.quickActions(m)}
-        <div class="split"><div>${parts.main(m)}</div><div class="stack">${parts.side(m)}</div></div>`;
+      const f = filters(q);
+      const query = qs(f);
+      const ds = store.state.proto.dataSource;
+      const shown = ds === 'normal' ? queue(f) : [];
+      const narrow = NARROW.matches;
+      const showList = !narrow || !id;
+      const showDetail = !narrow || !!id;
+      const selectedId = id || (showDetail && shown[0] && shown[0].id) || null;
+      const m = selectedId ? model(selectedId) : null;
+      const mine = store.state.role === 'app' && f.scope === 'mine';
+      const listTitle = html`${mine ? 'Alerts on my applications' : 'Alerts'} <span class="muted">(${shown.length})</span>`;
+      const extra = [
+        f.app ? [`Only ${reg.app(f.app).name}`, { app: '' }] : null,
+        f.kind ? ['Only telemetry-related or unclear', { kind: '' }] : null,
+        f.gap ? ['Only ownership or procedure gaps', { gap: false }] : null,
+      ].filter(Boolean);
+
+      let listBody;
+      if (ds === 'error') listBody = ui.errorState({ title: 'We couldn’t load alerts', body: 'The alerting service didn’t respond. Paging still works. On-call engineers are notified directly.', cached: 'If this continues, use #prod-ops and check Telemetry health.' });
+      else if (!shown.length) listBody = ui.emptyState({ title: 'No alerts here', body: f.status === 'open' && f.scope === 'all' && !extra.length ? 'Nothing is alerting right now.' : 'Nothing matches these filters.',
+        action: query ? html`<a class="btn btn-sm" href="#/alerts">Clear filters</a>` : '' });
+      else listBody = html`<ul class="alert-list">${shown.map((a) => alertRow(a, selectedId, query))}</ul>`;
+
+      const detail = m ? html`
+          ${narrow ? html`<p class="back-link"><a href="#/alerts${query}">${ui.icon('arrow', 'flip')}All alerts</a></p>` : ''}
+          <p class="eyebrow">${parts.eyebrow(m)}</p>
+          <h1>${m.a.title}</h1>
+          <p class="lead">${parts.lead(m)}</p>
+          ${parts.nextStep(m)}
+          ${parts.quickActions(m)}
+          ${parts.main(m)}`
+        : html`<h1>Alerts</h1>${id ? html`<p class="lead">There’s no alert ${id}. It may have been closed and archived.</p>` : html`<p class="lead">Nothing to show. Choose an alert from the list to work on it here.</p>`}`;
+
+      return html`<div class="triage" id="triage">
+        ${ui.incidentStrip()}
+        <div class="triage-panes ${showList && !showDetail ? 'list-only' : ''} ${showDetail && !showList ? 'detail-only' : ''}" id="triage-panes">
+          ${showList ? html`<section class="pane pane-list" aria-labelledby="h-triage-list" data-scroll-key="triage-list" data-scroll-keep="route">
+            <div class="pane-head">
+              ${showDetail ? html`<h2 id="h-triage-list">${listTitle}</h2>` : html`<h1 id="h-triage-list">${listTitle}</h1>`}
+              <div class="pane-filters">
+                ${seg('Status', f, 'status', [ ['open', 'Open'], ['new', 'New'], ['all', 'All'] ])}
+                ${seg('Applications', f, 'scope', [ ['mine', 'Mine'], ['all', 'All'] ])}
+              </div>
+              ${extra.length ? html`<ul class="filter-chips">${extra.map(([label, patch]) => html`<li><a class="chip chip-info" href="#/alerts${qs(f, patch)}">${label}<span class="sr-only">. Remove this filter</span>${ui.icon('x')}</a></li>`)}</ul>` : ''}
+            </div>
+            ${listBody}
+            <div class="pane-foot">
+              <label class="radio-row"><input type="checkbox" id="triage-shortcuts" data-change="triage-shortcuts" ${store.state.shortcuts ? raw('checked') : ''} /><span>Keyboard shortcuts</span></label>
+              <button type="button" class="link-btn small" data-action="triage-help" id="triage-help">What are the shortcuts?</button>
+            </div>
+          </section>` : ''}
+          ${showDetail ? html`<div class="triage-main" data-scroll-key="triage-main">
+            <section class="pane pane-detail" aria-label="${m ? 'Selected alert' : 'No alert selected'}" data-scroll-key="triage-detail">${detail}</section>
+            ${m ? html`<section class="pane pane-context" aria-label="Ownership, escalation and investigation" data-scroll-key="triage-context">${parts.side(m)}</section>` : ''}
+          </div>` : ''}
+        </div>
+      </div>`;
     },
-    mount(root, params, q) {
-      if (OperA.design() === 'console') return OperA.views.triage.mount(root, params, q);
+    mount(root) {
       ui.mountCharts(root);
+      sizePanes();
+      const cur = root.querySelector('.alert-row[aria-current="true"]');
+      if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
       return false;
     },
   };
-  OperA.route(/^\/alerts\/(ALR-\d+)$/, OperA.views.alertDetail);
+  OperA.route(/^\/alerts$/, OperA.views.alerts);
+  OperA.route(/^\/alerts\/(ALR-\d+)$/, OperA.views.alerts);
+
+  /* The queue and the alert scroll on their own, so the page itself must fit the window. */
+  function sizePanes() {
+    const el = document.getElementById('triage-panes');
+    if (!el) return;
+    if (NARROW.matches) { el.style.height = ''; return; }
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    el.style.height = `${Math.max(420, window.innerHeight - top - 12)}px`;
+  }
+  window.addEventListener('resize', sizePanes);
+
+  OperA.actions['queue-filter'] = (btn) => {
+    const href = btn.dataset.href;
+    history.replaceState(null, '', href);
+    OperA.render({ keepFocus: true });
+    const again = document.querySelector(`[data-action="queue-filter"][data-href="${CSS.escape(href)}"]`); if (again) again.focus();
+    OperA.announce(`${fmt.plural(document.querySelectorAll('.alert-row').length, 'alert')} shown.`);
+  };
+  OperA.changes['triage-shortcuts'] = (el) => {
+    store.state.shortcuts = el.checked; store.save();
+    OperA.announce(`Keyboard shortcuts ${el.checked ? 'on' : 'off'}.`);
+  };
+  const SHORTCUTS = [ ['J', 'Next alert'], ['K', 'Previous alert'], ['A', 'Acknowledge the selected alert'], ['E', 'Escalate or page someone'], ['Ctrl K', 'Ask, paste or jump (works on every screen)'], ['?', 'Show this list'] ];
+  OperA.actions['triage-help'] = () => {
+    OperA.modal.open({ title: 'Keyboard shortcuts', cancelLabel: 'Close',
+      body: html`<p>Single-key shortcuts work on the alerts screen when you’re not typing in a field. Turn them off with the “Keyboard shortcuts” checkbox under the alert list.</p>
+        <table class="table table-compact"><caption class="sr-only">Keyboard shortcuts</caption><thead><tr><th scope="col">Key</th><th scope="col">What it does</th></tr></thead>
+        <tbody>${SHORTCUTS.map(([k, d]) => html`<tr><td><kbd>${k}</kbd></td><td>${d}</td></tr>`)}</tbody></table>
+        <p class="small muted">Nothing risky has a shortcut. Approvals, resolving and linking incidents always go through their dialogs.</p>` });
+  };
+  document.addEventListener('keydown', (e) => {
+    if (!store.state.shortcuts) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"], [role="tab"], .chart-plot')) return;
+    if (document.getElementById('modal').open) return;
+    const triage = document.getElementById('triage');
+    if (!triage) return;
+    const key = e.key.toLowerCase();
+    if (key === 'j' || key === 'k') {
+      const rows = Array.from(triage.querySelectorAll('.alert-row'));
+      const cur = rows.findIndex((r) => r.getAttribute('aria-current') === 'true');
+      const next = rows[cur + (key === 'j' ? 1 : -1)];
+      e.preventDefault();
+      if (next) location.hash = next.getAttribute('href');
+      else OperA.announce(key === 'j' ? 'Last alert in the list.' : 'First alert in the list.');
+    } else if (key === 'a' || key === 'e') {
+      const btn = triage.querySelector(`.pane-detail [data-action="${key === 'a' ? 'ack' : 'escalate'}"]`);
+      e.preventDefault();
+      if (btn) btn.click();
+      else OperA.announce(key === 'a' ? 'This alert is already acknowledged.' : 'Nothing to escalate on this alert.');
+    } else if (e.key === '?') { e.preventDefault(); OperA.actions['triage-help'](); }
+  });
 
   /* ---------------- explorer (pre-scoped telemetry) ---------------- */
   const SAMPLE_LOGS = {
@@ -329,10 +414,88 @@
     alerts.log(form.dataset.alert, `Note: ${note}`);
     OperA.refresh(); OperA.toast('Note added.');
   };
-  OperA.actions['request-runbook'] = (el) => {
+  /* Handoff note: everything the next person needs, written from the alert's state. */
+  function handoffNote(a) {
+    const app = reg.app(a.camrId); const as = tel.assess(a); const esc = alerts.escalation(a, as);
+    const rb = reg.runbook(a.runbook) || reg.runbook(as.verdict === 'telemetry' ? 'RB-900' : 'RB-000');
+    const done = a.stepsDone.slice().sort().map((i) => `- Procedure step ${i + 1}: ${rb.steps[i].title}`);
+    const paged = a.escalations.map((e) => `- Paged ${alerts.resolveTarget(app, e.target, as).who} ${fmt.rel(e.at)}`);
+    const approvals = a.approvals.map((p) => `- ${p.title}: ${p.state === 'pending' ? `waiting for ${p.approver}` : `${p.state} by ${p.approver}`} (${p.change})`);
+    const notes = a.timeline.filter((t) => /^Note: /.test(t.text)).slice(0, 3).map((t) => `- ${t.who}: ${t.text.replace(/^Note: /, '')}`);
+    const upcoming = esc.steps.find((s) => s.state === 'due' || s.state === 'upcoming');
+    return [
+      `HANDOFF · ${a.id} · ${a.severity.toUpperCase()} · ${a.title}`,
+      `${app.name} (${app.camrId}) · ${a.service}/${a.component} · ${a.env} · started ${fmt.rel(a.startedAt)}`,
+      `Status: ${ui.ALERT_STATUS[a.status].label}${a.assignee ? `, owned by ${a.assignee}` : ''}`,
+      '',
+      'WHAT WE KNOW',
+      `- ${a.summary} ${a.impact}`,
+      `- ${as.headline} (confidence: ${as.confidence}).`,
+      ...as.evidence.filter((e) => e.type === 'bad' || e.type === 'warn').slice(0, 3).map((e) => `- ${e.text}`),
+      '',
+      'DONE SO FAR',
+      ...(done.length || paged.length || approvals.length || notes.length ? [...done, ...paged, ...approvals, ...notes] : ['- Nothing yet.']),
+      '',
+      'NEXT',
+      `- ${alerts.nextStep(a).text}`,
+      ...(upcoming ? [`- Escalation: ${upcoming.who} (${upcoming.role}) ${upcoming.state === 'due' ? 'is due now' : `in ${upcoming.inMin} min`}.`] : []),
+      `- Procedure: ${rb.title} (${rb.id})`,
+    ].join('\n');
+  }
+  OperA.actions.handoff = (el) => {
+    const a = alerts.get(el.dataset.alert);
+    OperA.modal.open({ title: `Handoff note for ${a.id}`, form: 'handoff', submitLabel: 'Save to the alert’s activity', wide: true, data: { alert: a.id },
+      body: html`<p>Written from the alert’s current state. Edit it if you need to, then copy it into your handover or save it here for the next responder.</p>
+        <div class="field"><label for="handoff-text">Note</label><textarea id="handoff-text" name="note" rows="16" class="mono">${handoffNote(a)}</textarea></div>
+        <button type="button" class="btn btn-sm" data-action="copy" data-copy-target="handoff-text">${ui.icon('copy')}<span>Copy</span></button>` });
+  };
+  OperA.forms.handoff = (form) => {
+    alerts.log(form.dataset.alert, `Handoff note:\n${form.elements.note.value.trim()}`);
+    OperA.modal.close(); OperA.refresh(); OperA.toast('Handoff note saved to the alert’s activity.');
+  };
+
+  /* Procedure draft: the responder who just handled it writes the first version; the owning team reviews and publishes. */
+  function runbookDraft(a) {
+    const app = reg.app(a.camrId); const as = tel.assess(a); const esc = alerts.escalation(a, as);
+    const d = (a.metric.unit === '%' || a.metric.unit === 'min') ? 1 : 0;
+    const threshold = a.metric.threshold != null ? `${Number(a.metric.threshold).toFixed(d)}${a.metric.unit === '%' ? '%' : a.metric.unit ? ` ${a.metric.unit}` : ''}` : null;
+    const found = [ ...as.evidence.filter((e) => e.type === 'bad').map((e) => e.text), ...a.timeline.filter((t) => /^Note: /.test(t.text)).map((t) => t.text.replace(/^Note: /, '')) ];
+    const path = esc.steps.filter((s) => s.key !== 'noc').map((s) => `${s.after === 0 ? 'From the start' : `After ${s.after} min`}: ${s.who} (${s.role})`);
+    return [
+      `TITLE: ${app.name} — ${a.metric.name.toLowerCase()}`,
+      `APPLIES TO: ${app.name} (${app.camrId}) · ${a.service}/${a.component}`,
+      `USE WHEN: ${a.metric.name}${threshold ? ` crosses ${threshold}` : ' stops reporting'}. ${a.impact}`,
+      '',
+      'STEPS',
+      `1. Confirm the impact. Open ${app.dashboards[0] || 'the application dashboard'} and check ${a.metric.name.toLowerCase()}. Confirm another signal shows the problem too.`,
+      '2. Check telemetry health first. If metrics, logs or traces for this application are delayed or missing, link the alert to the telemetry incident instead of paging.',
+      '3. Check recent changes. Deploys and config changes in the last 60 minutes are the most common cause.',
+      `4. ${found.length ? `Look for what was found last time (${a.id}): ${found.join(' ')}` : 'Read recent error logs and group them by message.'}`,
+      `5. Escalate to ${app.owningTeam} if it is not improving.`,
+      '',
+      'ESCALATION',
+      ...path.map((p) => `- ${p}`),
+      ...(!app.onCall ? ['- NOTE: no on-call schedule is registered. Add one before publishing this procedure.'] : []),
+      '',
+      'ACTIONS THAT NEED APPROVAL',
+      '- None proposed. Add any rollback, restart or scale-up here, with who approves it.',
+      '',
+      `Drafted from ${a.id} by ${me()}. Review before publishing.`,
+    ].join('\n');
+  }
+  OperA.actions['draft-runbook'] = (el) => {
     const a = alerts.get(el.dataset.alert); const app = reg.app(a.camrId);
-    alerts.log(a.id, `Asked ${app.owningTeam} to add a handling procedure for “${a.metric.name}” alerts.`);
-    OperA.refresh(); OperA.toast(`Request sent to ${app.owningTeam} (${app.appOwner}).`);
+    OperA.modal.open({ title: `Draft a procedure for ${app.name}`, form: 'draft-runbook', submitLabel: `Send draft to ${app.owningTeam}`, wide: true, data: { alert: a.id },
+      body: html`<p>You’ve just worked this alert, so you’re the best person to write the first version. ${app.owningTeam} owns the procedure: they review, correct and publish it. Nothing is published from here.</p>
+        <div class="field"><label for="rb-draft">Draft</label><textarea id="rb-draft" name="draft" rows="18" class="mono">${runbookDraft(a)}</textarea>
+          <p class="error-msg" data-error-for="draft" hidden></p></div>` });
+  };
+  OperA.forms['draft-runbook'] = (form) => {
+    if (!OperA.modal.fieldError(form, 'draft', form.elements.draft.value.trim().length >= 40 ? '' : 'The draft is empty. Keep the generated text or write your own.')) return;
+    const a = alerts.get(form.dataset.alert); const app = reg.app(a.camrId);
+    alerts.log(a.id, `Sent a draft handling procedure for “${a.metric.name}” alerts to ${app.owningTeam} for review.`);
+    OperA.modal.close(); OperA.refresh();
+    OperA.toast(`Draft sent to ${app.appOwner} (${app.owningTeam}) to review and publish.`);
   };
   OperA.actions['flag-gap'] = (el) => {
     const a = alerts.get(el.dataset.alert); const app = reg.app(a.camrId);

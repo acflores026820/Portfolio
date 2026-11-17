@@ -139,6 +139,11 @@
             </section>
           </div>
           <div class="stack">
+            ${app.status === 'active' ? (() => { const r = OperA.readiness(app); return html`<section class="card" aria-labelledby="h-ready">
+              <h2 class="card-title" id="h-ready">${ui.icon('shield')}Incident readiness</h2>
+              <div class="ready-score"><strong>${r.score} of ${r.total} ready</strong> <span class="muted small">(${r.env})</span>${OperA.readinessMeter(r, app.name)}</div>
+              ${r.score < r.total ? html`<p class="small" style="margin-top:8px">Not ready: ${r.items.filter((i) => !i.ok).map((i) => i.label.toLowerCase()).join(', ')}.</p>` : html`<p class="small" style="margin-top:8px">Everything a responder needs is in place.</p>`}
+              <a class="btn btn-sm" href="#/coverage?scope=all">Open coverage review</a></section>`; })() : ''}
             ${ui.ownership(app)}
             <section class="card" aria-labelledby="h-rb">
               <h2 class="card-title" id="h-rb">${ui.icon('book')}Handling procedures</h2>

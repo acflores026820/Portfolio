@@ -174,7 +174,7 @@
   };
   OperA.actions['req-resubmit'] = (el) => {
     const r = requests.get(el.dataset.id);
-    store.state.draft = { step: 0, camrId: r.camrId, service: r.service, component: r.component, env: r.env === 'prod' ? 'qa' : r.env, signals: r.signals.slice(),
+    store.state.draft = { camrId: r.camrId, service: r.service, component: r.component, env: r.env === 'prod' ? 'qa' : r.env, signals: r.signals.slice(),
       method: 'kubernetes', checks: null, attempts: {}, scenario: null, query: '', startedAt: Date.now(), savedAt: Date.now() };
     store.save();
     OperA.toast('We copied your request into a new draft. The approver asked for qa first, so qa is selected.', 'info');

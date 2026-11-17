@@ -22,6 +22,8 @@
     if (/^\/alerts\//.test(path)) { const a = alerts.get(params[0]); if (a) return { kind: 'alert', key: a.id, label: `${a.id} · ${reg.app(a.camrId).name} (${a.env})`, alert: a }; }
     if (/^\/requests\//.test(path)) { const r = requests.get(params[0]); if (r) return { kind: 'request', key: r.id, label: `${r.id} · ${reg.app(r.camrId).name} · ${r.service} (${r.env})`, request: r }; }
     if (/^\/apps\//.test(path)) { const app = reg.app(params[0]); if (app) return { kind: 'app', key: app.camrId, label: `${app.name} · ${app.camrId}`, app }; }
+    if (/^\/fix/.test(path)) return { kind: 'general', key: 'fix', label: 'Fix-it' };
+    if (/^\/coverage/.test(path)) return { kind: 'general', key: 'coverage', label: 'Coverage review' };
     if (/^\/onboard/.test(path)) { const d = store.state.draft; return { kind: 'onboard', key: 'onboard', label: d && d.camrId ? `Onboarding draft · ${reg.app(d.camrId).name}${d.service ? ` · ${d.service}` : ''}` : 'Onboarding', draft: d }; }
     if (/^\/health/.test(path)) return { kind: 'health', key: 'health', label: 'Telemetry health' };
     return { kind: 'general', key: 'general:' + store.state.role, label: store.state.role === 'app' ? 'Your applications' : 'Operations overview' };
@@ -71,9 +73,9 @@
     }
     if (intent === 'validation' || (intent === 'next' && (ctx.request || ctx.kind === 'onboard'))) {
       const checks = ctx.request ? ctx.request.checks : (ctx.draft && ctx.draft.checks);
-      if (!checks) return { text: html`<p>You haven’t run the checks yet. On the <strong>Connect and check</strong> step, add the configuration, deploy, then choose <strong>Run checks</strong>. I’ll explain anything that fails.</p>`, sources: [], tools: [ tool('onboarding.get_draft', {}) ], proposals: [] };
+      if (!checks) return { text: html`<p>You haven’t run the checks yet. Add the settings from section 3, deploy, then choose <strong>Run checks</strong> in section 4. I’ll explain anything that fails. To check settings before you deploy, paste them into <a href="#/fix">Fix-it</a>.</p>`, sources: [], tools: [ tool('onboarding.get_draft', {}) ], proposals: [] };
       const bad = checks.filter((c) => c.state === 'fail' || c.state === 'waiting');
-      if (!bad.length) return { text: html`<p>All checks passed. ${ctx.request ? html`Next: ${requests.next(ctx.request).text}` : 'Continue to review and submit.'}</p>`, sources: [], tools: [ tool('onboarding.get_validation', { id: ctx.key }) ], proposals: [] };
+      if (!bad.length) return { text: html`<p>All checks passed. ${ctx.request ? html`Next: ${requests.next(ctx.request).text}` : 'Submit your request.'}</p>`, sources: [], tools: [ tool('onboarding.get_validation', { id: ctx.key }) ], proposals: [] };
       return { text: html`${bad.map((c) => html`<p><strong>${c.label}: ${c.state === 'fail' ? 'failed' : 'waiting'}.</strong> ${c.detail}${c.cause ? html` ${c.cause}` : ''}</p>${c.fix ? html`<p><strong>Fix:</strong> ${c.fix.text}</p>` : ''}`)}<p>After you change it, choose “check again” on that item. If the same check keeps failing, “Get help” sends these diagnostics to the Telemetry Platform team.</p>`,
         sources: bad.map((c) => ({ label: `Validation result: ${c.label}`, href: ctx.request ? `#/requests/${ctx.request.id}` : '#/onboard' })),
         tools: [ tool('onboarding.get_validation', { id: ctx.key }), tool('telemetry.list_incidents', {}) ], proposals: [] };
@@ -211,6 +213,10 @@
     }
   });
   OperA.assistant = {
+    /** Open the panel (used by the command bar). */
+    open() { setOpen(true); },
+    /** Open the panel and ask a typed question. */
+    ask(text) { setOpen(true); ask(route(text, context()), text); },
     onRoute() {
       const ctx = context();
       if (ctx.key !== lastKey) { log.length = 0; lastKey = ctx.key; }

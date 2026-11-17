@@ -16,18 +16,6 @@
     const rb = D.runbooks.filter((r) => r.id.toLowerCase().includes(s) || r.title.toLowerCase().includes(s));
     return { apps, services, al, rq, rb, total: apps.length + services.length + al.length + rq.length + rb.length };
   }
-  /** Jump straight to an exact ID match; otherwise show results. */
-  OperA.forms['global-search'] = (form) => {
-    const q = form.elements.q.value.trim();
-    if (!q) return;
-    const up = q.toUpperCase();
-    if (/^CAMR-\d{6}$/.test(up) && reg.app(up)) return OperA.go(`#/apps/${up}`);
-    if (/^ALR-\d+$/.test(up) && alerts.get(up)) return OperA.go(`#/alerts/${up}`);
-    if (/^REQ-\d+$/.test(up) && requests.get(up)) return OperA.go(`#/requests/${up}`);
-    if (/^RB-\d+$/.test(up) && reg.runbook(up)) return OperA.go(`#/runbooks/${up}`);
-    OperA.go(`#/search?q=${encodeURIComponent(q)}`);
-  };
-
   OperA.views.search = {
     title: (_, q) => `Search: ${q.q || ''}`,
     render(_, q) {

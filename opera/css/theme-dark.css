@@ -1,0 +1,51 @@
+/* OperA — dark appearance.
+ * Colours only: it never changes layout or content. Values are chosen for the
+ * dark surface (not an automatic flip) and keep WCAG 2.2 AA contrast:
+ * text >= 4.5:1, control boundaries >= 3:1.
+ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0e1014;
+  --surface: #171a21;
+  --surface-2: #1e222b;
+  --border: #2d333e;
+  --border-strong: #6b7688;
+  --text: #e8ebf0;
+  --text-2: #c0c7d2;
+  --text-3: #9ba4b3;
+  --primary: #8fb0ff;
+  --primary-hover: #b4c9ff;
+  --primary-weak: #1a2747;
+  --focus: #8fb0ff;
+
+  --success: #6fdc8c; --success-bg: #11301c; --success-bd: #215c35;
+  --danger: #ff9c94;  --danger-bg: #3a1614;  --danger-bd: #73302a;
+  --warn: #f1c453;    --warn-bg: #33270a;    --warn-bd: #6b5216;
+  --info: #9bb8ff;    --info-bg: #16223f;    --info-bd: #2e4680;
+  --neutral: #c3cad6; --neutral-bg: #232833; --neutral-bd: #3e4656;
+  --tel: #c4b1ff;     --tel-bg: #261d45;     --tel-bd: #4a3a85;
+  --app: #7fd6e0;     --app-bg: #0e2c31;     --app-bd: #1f5760;
+
+  --sev-high-bg: #3a1d10;   --sev-high-bd: #7a3d1f;   --sev-high-fg: #ffb38f;
+  --sev-medium-bg: #33270a; --sev-medium-bd: #6b5216; --sev-medium-fg: #f1c453;
+  --series-1: #3987e5;
+  --grid: #2a303a;
+
+  --primary-fill: #2f5fe0; --primary-fill-hover: #2550c4;
+  --danger-fill: #c0392b;  --danger-fill-hover: #a53125;
+  --tel-fill: #6a4bd0;
+  --field-bg: #11141a;
+  --hover-bg: #1c2029;
+  --selected-bg: #1a2440;
+  --border-hover: #8a94a6;
+  --warn-edge: #d99a00;
+  --check-fail-bg: #1f1718; --check-wait-bg: #171b26;
+  --avatar-bg: #24355f; --avatar-fg: #c9d8ff;
+  --env-prod-bg: #e8ebf0; --env-prod-fg: #12161d;
+  --toast-bg: #2a3140;
+  --code-bg: #0b0d12; --code-head-bg: #151922; --code-bd: #2d333e;
+  --cov-active: #3fb56a; --cov-partial: #d99a00; --cov-onboarding: #6d93ea;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+html[data-theme="dark"] .prototype-ribbon { border-bottom: 1px solid var(--border); }

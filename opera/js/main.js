@@ -41,7 +41,6 @@
     e.preventDefault();
     document.getElementById('main').focus();
   });
-  // First visit: let the person pick a layout. After that, land on home.
-  if (!location.hash) history.replaceState(null, '', OperA.store.state.chosen ? '#/home' : '#/choose');
+  if (!location.hash) history.replaceState(null, '', '#/home');
   OperA.render();
 })();

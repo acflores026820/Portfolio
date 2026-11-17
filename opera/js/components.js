@@ -35,6 +35,8 @@
     link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     refresh: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
     commit: '<circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17.01" y1="12" x2="22.96" y2="12"/>',
+    moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    sun: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
     help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     chevron: '<polyline points="9 18 15 12 9 6"/>',
     flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
@@ -164,7 +166,7 @@
   }
   OperA.actions.copy = (btn) => {
     const pre = document.getElementById(btn.dataset.copyTarget);
-    const text = pre ? pre.textContent : '';
+    const text = !pre ? '' : pre.tagName === 'TEXTAREA' ? pre.value : pre.textContent;
     const done = () => { btn.querySelector('span').textContent = 'Copied'; OperA.announce('Copied to clipboard'); setTimeout(() => { if (btn.isConnected) btn.querySelector('span').textContent = 'Copy'; }, 2000); };
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
     else fallbackCopy(text, done);
@@ -396,6 +398,15 @@
       html`<a class="btn btn-sm" href="#/health">See impact and guidance</a>`);
   }
 
+  /* One-line platform status, so a pipeline incident is visible without leaving the screen. */
+  function incidentStrip(app) {
+    const list = app ? tel.incidentsFor(app) : D.telemetry.incidents;
+    if (!list.length) return '';
+    return html`<p class="strip strip-tel">${icon('activity')}<strong>${fmt.plural(list.length, 'telemetry incident')}:</strong>
+      ${list.map((i, k) => html`${k ? ' · ' : ''}${i.id} ${i.title}`)}.
+      ${app ? 'A platform problem, not yours to fix.' : 'Affected alerts are marked.'} <a href="#/health">Telemetry health</a></p>`;
+  }
+
   /* ---------- navigation ---------- */
   function navItems() {
     const role = store.state.role;
@@ -405,72 +416,70 @@
     const myReqs = requests.all().filter((r) => requests.next(r).owner === 'you' && (r.requester === D.personas.app.name || myCamr.includes(r.camrId)));
     const items = {
       home: { href: '#/home', icon: 'home', label: 'Home', match: /^\/home/ },
-      apps: { href: '#/apps', icon: 'grid', label: role === 'app' ? 'My applications' : 'Applications', match: /^\/apps/ },
-      onboard: { href: '#/onboard', icon: 'plus', label: 'Onboard telemetry', match: /^\/onboard/ },
-      requests: { href: '#/requests', icon: 'list', label: 'Onboarding requests', match: /^\/requests/,
+      apps: { href: '#/apps', icon: 'grid', label: 'Applications', match: /^\/apps/ },
+      onboard: { href: '#/onboard', icon: 'plus', label: 'Onboard', match: /^\/onboard/ },
+      requests: { href: '#/requests', icon: 'list', label: 'Requests', match: /^\/requests/,
         badge: role === 'app' && myReqs.length ? { n: myReqs.length, sr: 'need your action', tone: 'danger' } : null },
       alerts: { href: '#/alerts', icon: 'bell', label: 'Alerts', match: /^\/alerts/,
         badge: alertCount ? { n: alertCount, sr: role === 'app' ? 'open on your applications' : 'new, not acknowledged', tone: role === 'app' ? 'neutral' : 'danger' } : null },
       health: { href: '#/health', icon: 'activity', label: 'Telemetry health', match: /^\/health/,
         badge: D.telemetry.incidents.length ? { n: D.telemetry.incidents.length, sr: 'active incidents', tone: 'tel' } : null },
-      runbooks: { href: '#/runbooks', icon: 'book', label: 'Handling procedures', match: /^\/runbooks/ },
+      runbooks: { href: '#/runbooks', icon: 'book', label: 'Procedures', match: /^\/runbooks/ },
+      fix: { href: '#/fix', icon: 'check', label: 'Check my setup', match: /^\/fix/ },
+      coverage: { href: '#/coverage', icon: 'layers', label: 'Coverage', match: /^\/coverage/ },
+      about: { href: '#/about', icon: 'info', label: 'About', match: /^\/about/ },
     };
-    let order = role === 'app'
-      ? ['home', 'apps', 'onboard', 'requests', 'alerts', 'health', 'runbooks']
-      : ['home', 'alerts', 'health', 'apps', 'runbooks', 'requests', 'onboard'];
-    if (OperA.design() === 'console') {
-      if (role === 'ops') {
-        // In the Console layout the triage console is the home page, so one item covers both.
-        items.home = Object.assign({}, items.alerts, { href: '#/home', icon: 'bell', label: 'Triage', match: /^\/(home|alerts)/ });
-        order = ['home', 'health', 'apps', 'runbooks', 'requests', 'onboard'];
-      } else {
-        items.home.label = 'Workspace';
-        order = ['home', 'onboard', 'requests', 'alerts', 'health', 'apps', 'runbooks'];
-      }
-      // The Console's navigation runs across the top, so it uses shorter labels.
-      Object.assign(items.onboard, { label: 'Onboard' });
-      Object.assign(items.requests, { label: 'Requests' });
-      Object.assign(items.runbooks, { label: 'Procedures' });
-      Object.assign(items.apps, { label: 'Applications' });
-    }
+    const order = role === 'app'
+      ? ['home', 'onboard', 'fix', 'requests', 'coverage', 'alerts', 'health', 'apps', 'runbooks', 'about']
+      : ['home', 'alerts', 'health', 'apps', 'coverage', 'runbooks', 'requests', 'onboard', 'fix', 'about'];
     return order.map((k) => items[k]);
   }
   function renderNav() {
     const path = OperA.current.path;
     const nav = document.getElementById('sidenav');
-    nav.innerHTML = String(html`<ul>${navItems().map((it) => html`<li><a href="${it.href}" ${it.match.test(path) ? raw('aria-current="page"') : ''}>
+    nav.innerHTML = String(html`<div class="nav-drawer-head"><span>Menu</span><button type="button" class="icon-btn nav-close" data-action="toggle-nav"><span class="sr-only">Close navigation</span>${icon('x')}</button></div>
+      <ul>${navItems().map((it) => html`<li><a href="${it.href}" ${it.match.test(path) ? raw('aria-current="page"') : ''}>
       ${icon(it.icon)}<span class="nav-label">${it.label}</span>
-      ${it.badge ? html`<span class="nav-badge nav-badge-${it.badge.tone}">${it.badge.n}<span class="sr-only"> ${it.badge.sr}</span></span>` : ''}</a></li>`)}</ul>
-      <p class="nav-foot"><span class="nav-foot-note">OperA prototype · fictional data</span>
-        <a href="#/choose">Choose layout</a><span aria-hidden="true"> · </span><a href="#/about">About and scenarios</a></p>`);
+      ${it.badge ? html`<span class="nav-badge nav-badge-${it.badge.tone}">${it.badge.n}<span class="sr-only"> ${it.badge.sr}</span></span>` : ''}</a></li>`)}</ul>`);
     const p = reg.persona();
     document.getElementById('user-chip').innerHTML = String(html`<span class="avatar" aria-hidden="true">${p.initials}</span><span class="user-meta"><strong>${p.name}</strong><span>${p.title}</span></span>`);
     document.querySelectorAll('[data-action="set-role"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.role === store.state.role)));
-    document.querySelectorAll('.design-switch [data-action="set-design"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.design === OperA.design())));
+    const dark = OperA.theme() === 'dark';
+    const tb = document.getElementById('theme-btn');
+    tb.setAttribute('aria-pressed', String(dark));
+    tb.innerHTML = String(html`${icon(dark ? 'moon' : 'sun')}<span class="sr-only">Dark appearance</span>`);
   }
-  const LAYOUT_NAME = { guided: 'Guided', console: 'Console' };
-  OperA.actions['set-design'] = (btn) => {
-    const role = btn.dataset.role || store.state.role;
-    store.state.role = role;
-    store.state.design[role] = btn.dataset.design;
-    store.state.chosen = true; store.save();
-    OperA.toast(`${LAYOUT_NAME[btn.dataset.design]} layout is on for ${role === 'app' ? 'application teams' : 'DevOps'}. Switch any time from the top bar.`, 'info');
-    if (btn.dataset.go) OperA.go(btn.dataset.go); else OperA.render();
+  OperA.actions['toggle-theme'] = () => {
+    store.state.theme = OperA.theme() === 'dark' ? 'light' : 'dark'; store.save();
+    OperA.applyTheme(); renderNav();
+    OperA.announce(`${store.state.theme === 'dark' ? 'Dark' : 'Light'} appearance on. Only colours change.`);
   };
-  OperA.actions['toggle-nav'] = (btn) => {
-    const open = btn.getAttribute('aria-expanded') === 'true';
-    btn.setAttribute('aria-expanded', String(!open));
-    document.body.classList.toggle('nav-open', !open);
+  /* On narrow screens the navigation is a drawer: it opens with focus inside, and closes on
+     Escape, on its close button, on choosing a link, or on a click outside it. */
+  const navOpen = () => document.body.classList.contains('nav-open');
+  function closeNav(returnFocus) {
+    document.body.classList.remove('nav-open');
+    const btn = document.querySelector('.nav-toggle');
+    btn.setAttribute('aria-expanded', 'false');
+    if (returnFocus) btn.focus();
+  }
+  OperA.actions['toggle-nav'] = () => {
+    if (navOpen()) { closeNav(true); return; }
+    document.body.classList.add('nav-open');
+    document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'true');
+    document.querySelector('.nav-close').focus();
   };
   document.addEventListener('click', (e) => {
-    if (document.body.classList.contains('nav-open') && e.target.closest('#sidenav a')) {
-      document.body.classList.remove('nav-open');
-      document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false');
-    }
+    if (!navOpen()) return;
+    if (e.target.closest('#sidenav a')) closeNav(false);
+    else if (!e.target.closest('#sidenav, .nav-toggle')) closeNav(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navOpen()) closeNav(true);
   });
   OperA.actions['set-role'] = (btn) => {
     store.state.role = btn.dataset.role; store.save();
-    OperA.toast(`${btn.dataset.role === 'app' ? 'Now viewing as Jordan Kim (application team)' : 'Now viewing as Sam Ortiz (DevOps / operations)'}, ${LAYOUT_NAME[OperA.design()]} layout.`, 'info');
+    OperA.toast(btn.dataset.role === 'app' ? 'Now viewing as Jordan Kim (application team).' : 'Now viewing as Sam Ortiz (DevOps / operations).', 'info');
     OperA.render();
   };
 
@@ -504,7 +513,7 @@
     panel.hidden = open;
     btn.setAttribute('aria-expanded', String(!open));
     if (!open) panel.querySelector('h2').setAttribute('tabindex', '-1'), panel.querySelector('h2').focus();
-    else btn.focus();
+    else btn.focus({ preventScroll: true });
   };
   OperA.changes.proto = (el) => {
     store.state.proto[el.name] = el.value; store.save();
@@ -522,6 +531,6 @@
   OperA.ui = {
     icon, sev, checkChip, covChip, freshChip, alertStatus, verdictChip, reqStatus, envTag, timeAgo,
     pageHead, callout, emptyState, errorState, notFound, help, codeBlock, stepper, ownership, escalationLadder,
-    lineChart, mountCharts, incidentBanner, renderNav,
+    lineChart, mountCharts, incidentBanner, incidentStrip, renderNav, ALERT_STATUS,
   };
 })();
